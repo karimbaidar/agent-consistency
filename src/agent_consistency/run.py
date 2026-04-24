@@ -3,11 +3,20 @@ import warnings
 from collections.abc import Iterable, Mapping
 from typing import Any, Callable, Dict, Literal, Optional
 
+from .contracts import HandoffContract
 from .errors import HandoffValidationError, OutcomeVerificationError, StaleStateError
 from .handoff import HandoffPacket
-from .models import ConsistencyIssue, ConsistencyReceipt, OutcomeResult, StateDelta, StateSnapshot
+from .models import (
+    ConsistencyIssue,
+    ConsistencyReceipt,
+    OutcomeResult,
+    ProofArtifact,
+    StateDelta,
+    StateSnapshot,
+)
 from .outcome import OutcomeCheck, OutcomeVerifier
 from .store import InMemoryReceiptStore, ReceiptStore
+from .verifier import VerificationContext, VerifierRegistry
 
 _MISSING = object()
 
@@ -184,6 +193,31 @@ class AgentStep:
         self.receipt.state_deltas.append(delta)
         return delta
 
+    def proof_artifact(
+        self,
+        name: str,
+        value: Any,
+        *,
+        kind: str = "data",
+        verified: bool = False,
+        uri: Optional[str] = None,
+        verifier: Optional[str] = None,
+        details: Optional[Mapping[str, Any]] = None,
+        include_value: bool = False,
+    ) -> ProofArtifact:
+        artifact = ProofArtifact.capture(
+            name,
+            value,
+            kind=kind,
+            verified=verified,
+            uri=uri,
+            verifier=verifier,
+            details=details,
+            include_value=include_value,
+        )
+        self.receipt.proof_artifacts.append(artifact)
+        return artifact
+
     def handoff(
         self,
         *,
@@ -194,6 +228,8 @@ class AgentStep:
         missing_info: Optional[Iterable[str]] = None,
         constraints: Optional[Iterable[str]] = None,
         evidence: Optional[Mapping[str, Any]] = None,
+        artifacts: Optional[Iterable[ProofArtifact]] = None,
+        contract: Optional[HandoffContract] = None,
         metadata: Optional[Mapping[str, Any]] = None,
         required_facts: Optional[Iterable[str]] = None,
         required_assumptions: Optional[Iterable[str]] = None,
@@ -209,9 +245,13 @@ class AgentStep:
             missing_info=list(missing_info or []),
             constraints=list(constraints or []),
             evidence=dict(evidence or {}),
+            artifacts=list(artifacts or []),
+            contract=contract,
+            produced_by_receipt=self.receipt.key,
             metadata=dict(metadata or {}),
         )
         self.receipt.handoffs.append(packet)
+        self.receipt.produced_handoff_ids.append(packet.handoff_id)
         problems = packet.validate(
             required_facts=required_facts,
             required_assumptions=required_assumptions,
@@ -230,6 +270,77 @@ class AgentStep:
                 ),
             )
         return packet
+
+    def consume_handoff(
+        self,
+        packet: HandoffPacket,
+        *,
+        contract: Optional[HandoffContract] = None,
+        require_verified: bool = True,
+        registry: Optional[VerifierRegistry] = None,
+        verifier: Optional[str] = None,
+    ) -> bool:
+        active_contract = contract or packet.contract
+        problems = packet.validate(
+            required_facts=active_contract.required_facts if active_contract else None,
+            required_assumptions=active_contract.required_assumptions if active_contract else None,
+            required_constraints=active_contract.required_constraints if active_contract else None,
+            required_evidence=active_contract.required_evidence if active_contract else None,
+        )
+        if active_contract:
+            problems.extend(active_contract.validate_artifacts(packet.artifacts))
+        if require_verified and not packet.verified:
+            problems.append(f"handoff '{packet.handoff_id}' is not verified")
+        if active_contract and packet.contract and active_contract.name != packet.contract.name:
+            problems.append(
+                f"handoff contract mismatch: expected '{active_contract.name}', "
+                f"got '{packet.contract.name}'"
+            )
+
+        if problems:
+            self._handle_issue(
+                code="invalid_consumed_handoff",
+                message="; ".join(problems),
+                details={"handoff": packet.to_dict(), "problems": problems},
+                exception_factory=lambda text: HandoffValidationError(
+                    text,
+                    details={"problems": problems},
+                ),
+            )
+            return False
+
+        self.receipt.consumed_handoff_ids.append(packet.handoff_id)
+        self.receipt.consumed_artifact_ids.extend(
+            artifact.artifact_id for artifact in packet.artifacts
+        )
+        if packet.produced_by_receipt:
+            self.receipt.parent_receipt_keys.append(packet.produced_by_receipt)
+
+        verifier_name = verifier or (active_contract.verifier if active_contract else None)
+        if registry and verifier_name:
+            result = registry.verify(
+                verifier_name,
+                VerificationContext(
+                    name=verifier_name,
+                    receipt=self.receipt,
+                    subject=packet,
+                    facts=packet.facts,
+                    metadata={"contract": active_contract.to_dict() if active_contract else None},
+                ),
+            )
+            self.receipt.outcomes.append(result)
+            if not result.passed:
+                self._handle_issue(
+                    code="handoff_verifier_failed",
+                    message=f"handoff verifier '{verifier_name}' failed: {result.reason}",
+                    details=result.to_dict(),
+                    exception_factory=lambda text: HandoffValidationError(
+                        text,
+                        details=result.details,
+                    ),
+                )
+                return False
+        return True
 
     def require_supported_claims(
         self,
@@ -272,6 +383,35 @@ class AgentStep:
             failure_reason=failure_reason,
             details=details,
         ).run()
+        self.receipt.outcomes.append(result)
+        if not result.passed:
+            self._handle_issue(
+                code="outcome_failed",
+                message=f"outcome '{name}' failed: {result.reason}",
+                details=result.to_dict(),
+                exception_factory=lambda text: OutcomeVerificationError(text, result=result),
+            )
+        return result
+
+    def verify_with(
+        self,
+        registry: VerifierRegistry,
+        name: str,
+        *,
+        subject: Any = None,
+        facts: Optional[Mapping[str, Any]] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
+    ) -> OutcomeResult:
+        result = registry.verify(
+            name,
+            VerificationContext(
+                name=name,
+                receipt=self.receipt,
+                subject=subject,
+                facts=facts,
+                metadata=metadata,
+            ),
+        )
         self.receipt.outcomes.append(result)
         if not result.passed:
             self._handle_issue(

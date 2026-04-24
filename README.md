@@ -21,6 +21,19 @@ business outcome is still not true. This library gives each step an explicit rec
 The core package is generic. Azure Durable Functions is the first adapter because replay, resume,
 and orchestration history make these consistency problems especially visible.
 
+## What Is New In 0.2
+
+Version `0.2.0` adds causal consistency features for more realistic agent
+systems:
+
+- `HandoffContract` for declared inputs, evidence, produced artifacts, and verifier names
+- `ProofArtifact` for verified outputs such as provider reads, decisions, approvals, files, or tickets
+- `VerifierRegistry` for dynamic verifier selection without hard-coding every check inline
+- `consume_handoff` so downstream agents can reject stale, incomplete, or unverified work
+- `build_causality_graph` and `trace_causality` to explain which upstream step a downstream action relied on
+
+The goal is to make “done” mean more than “the last agent stopped talking.”
+
 ## Install
 
 From a local checkout:
@@ -126,6 +139,43 @@ packet = step.handoff(
 )
 ```
 
+### Handoff Contracts And Proof Artifacts
+
+Use contracts when a downstream agent should only trust work that declares its
+inputs, proof artifacts, and verifier.
+
+```python
+from agent_consistency import HandoffContract, WorkflowRun
+
+contract = HandoffContract.define(
+    "refund_approval",
+    required_facts=["order_id", "amount"],
+    produced_artifacts=["policy_decision"],
+    verifier="refund_approval_check",
+)
+
+run = WorkflowRun("refund-ord-1")
+
+with run.step("policy-agent", "approve", step_id="policy") as step:
+    artifact = step.proof_artifact(
+        "policy_decision",
+        {"eligible": True, "policy_version": "policy-v12"},
+        kind="decision",
+        verified=True,
+        verifier="policy_rule",
+    )
+    packet = step.handoff(
+        to_agent="refund-agent",
+        task="issue refund",
+        facts={"order_id": "ord_1", "amount": 42.5},
+        artifacts=[artifact],
+        contract=contract,
+    )
+
+with run.step("refund-agent", "issue", step_id="refund") as step:
+    step.consume_handoff(packet, contract=contract)
+```
+
 ### Outcome Verifier
 
 A tool call is not complete just because it returned. Add a postcondition that proves the business
@@ -138,6 +188,24 @@ step.verify_outcome(
 )
 ```
 
+### Dynamic Verifier Registry
+
+Dynamic verification means the verification strategy can depend on action,
+contract, risk, or data. It does not require an LLM.
+
+```python
+from agent_consistency import VerifierRegistry
+
+registry = VerifierRegistry()
+
+@registry.register("refund_amount_check")
+def refund_amount_check(context):
+    return context.facts["amount"] < 500
+
+with run.step("refund-agent", "issue", step_id="refund") as step:
+    step.consume_handoff(packet, contract=contract, registry=registry)
+```
+
 ### Run Diff
 
 Compare two runs and see where state, assumptions, handoffs, deltas, or outcomes diverged.
@@ -147,6 +215,17 @@ from agent_consistency import diff_runs
 
 diff = diff_runs(previous_run_receipts, current_run_receipts)
 print(diff.summary())
+```
+
+### Causality Trace
+
+Build a small graph of which receipts produced the handoffs and artifacts that
+later receipts consumed.
+
+```python
+from agent_consistency import trace_causality
+
+print(trace_causality(run.receipts()))
 ```
 
 ## Azure Durable Functions Adapter

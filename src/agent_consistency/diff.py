@@ -106,6 +106,15 @@ def _compare_receipts(
     )
     _compare_list(
         step_id,
+        "proof_artifact",
+        "proof artifact diverged",
+        [artifact.to_dict() for artifact in left.proof_artifacts],
+        [artifact.to_dict() for artifact in right.proof_artifacts],
+        differences,
+        ignore_fields={"created_at"},
+    )
+    _compare_list(
+        step_id,
         "outcome",
         "outcome diverged",
         [outcome.to_dict() for outcome in left.outcomes],
@@ -113,6 +122,16 @@ def _compare_receipts(
         differences,
         ignore_fields={"checked_at"},
     )
+    if left.consumed_handoff_ids != right.consumed_handoff_ids:
+        differences.append(
+            DiffItem(
+                "causality",
+                "consumed handoff ids diverged",
+                step_id=step_id,
+                left=left.consumed_handoff_ids,
+                right=right.consumed_handoff_ids,
+            )
+        )
 
 
 def _strip_fields(payload: Any, ignore_fields: set) -> Any:

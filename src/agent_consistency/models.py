@@ -150,6 +150,77 @@ class OutcomeResult:
         )
 
 
+@dataclass(frozen=True)
+class ProofArtifact:
+    name: str
+    kind: str
+    digest: str
+    verified: bool = False
+    uri: Optional[str] = None
+    verifier: Optional[str] = None
+    details: Dict[str, Any] = field(default_factory=dict)
+    created_at: str = field(default_factory=utc_now_iso)
+    value: Optional[Any] = field(default=None, repr=False, compare=False)
+
+    @property
+    def artifact_id(self) -> str:
+        return f"{self.kind}:{self.name}:{self.digest[:16]}"
+
+    @classmethod
+    def capture(
+        cls,
+        name: str,
+        value: Any,
+        *,
+        kind: str = "data",
+        verified: bool = False,
+        uri: Optional[str] = None,
+        verifier: Optional[str] = None,
+        details: Optional[Mapping[str, Any]] = None,
+        include_value: bool = False,
+    ) -> "ProofArtifact":
+        return cls(
+            name=name,
+            kind=kind,
+            digest=stable_digest(value),
+            verified=verified,
+            uri=uri,
+            verifier=verifier,
+            details=dict(details or {}),
+            value=to_jsonable(value) if include_value else None,
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        payload = {
+            "artifact_id": self.artifact_id,
+            "name": self.name,
+            "kind": self.kind,
+            "digest": self.digest,
+            "verified": self.verified,
+            "uri": self.uri,
+            "verifier": self.verifier,
+            "details": to_jsonable(self.details),
+            "created_at": self.created_at,
+        }
+        if self.value is not None:
+            payload["value"] = self.value
+        return payload
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "ProofArtifact":
+        return cls(
+            name=str(payload["name"]),
+            kind=str(payload.get("kind") or "data"),
+            digest=str(payload["digest"]),
+            verified=bool(payload.get("verified")),
+            uri=payload.get("uri"),
+            verifier=payload.get("verifier"),
+            details=dict(payload.get("details") or {}),
+            created_at=str(payload.get("created_at") or utc_now_iso()),
+            value=payload.get("value"),
+        )
+
+
 @dataclass
 class ConsistencyReceipt:
     run_id: str
@@ -160,8 +231,13 @@ class ConsistencyReceipt:
     state_reads: List[StateSnapshot] = field(default_factory=list)
     state_deltas: List[StateDelta] = field(default_factory=list)
     handoffs: List[Any] = field(default_factory=list)
+    proof_artifacts: List[ProofArtifact] = field(default_factory=list)
     outcomes: List[OutcomeResult] = field(default_factory=list)
     issues: List[ConsistencyIssue] = field(default_factory=list)
+    parent_receipt_keys: List[str] = field(default_factory=list)
+    consumed_handoff_ids: List[str] = field(default_factory=list)
+    produced_handoff_ids: List[str] = field(default_factory=list)
+    consumed_artifact_ids: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
     status: str = "running"
     error: Optional[Dict[str, Any]] = None
@@ -192,8 +268,13 @@ class ConsistencyReceipt:
             "state_reads": [snapshot.to_dict() for snapshot in self.state_reads],
             "state_deltas": [delta.to_dict() for delta in self.state_deltas],
             "handoffs": [handoff.to_dict() for handoff in self.handoffs],
+            "proof_artifacts": [artifact.to_dict() for artifact in self.proof_artifacts],
             "outcomes": [outcome.to_dict() for outcome in self.outcomes],
             "issues": [issue.to_dict() for issue in self.issues],
+            "parent_receipt_keys": list(self.parent_receipt_keys),
+            "consumed_handoff_ids": list(self.consumed_handoff_ids),
+            "produced_handoff_ids": list(self.produced_handoff_ids),
+            "consumed_artifact_ids": list(self.consumed_artifact_ids),
             "metadata": to_jsonable(self.metadata),
             "status": self.status,
             "error": to_jsonable(self.error),
@@ -216,8 +297,15 @@ class ConsistencyReceipt:
             ],
             state_deltas=[StateDelta.from_dict(item) for item in payload.get("state_deltas") or []],
             handoffs=[HandoffPacket.from_dict(item) for item in payload.get("handoffs") or []],
+            proof_artifacts=[
+                ProofArtifact.from_dict(item) for item in payload.get("proof_artifacts") or []
+            ],
             outcomes=[OutcomeResult.from_dict(item) for item in payload.get("outcomes") or []],
             issues=[ConsistencyIssue.from_dict(item) for item in payload.get("issues") or []],
+            parent_receipt_keys=list(payload.get("parent_receipt_keys") or []),
+            consumed_handoff_ids=list(payload.get("consumed_handoff_ids") or []),
+            produced_handoff_ids=list(payload.get("produced_handoff_ids") or []),
+            consumed_artifact_ids=list(payload.get("consumed_artifact_ids") or []),
             metadata=dict(payload.get("metadata") or {}),
             status=str(payload.get("status") or "running"),
             error=payload.get("error"),
