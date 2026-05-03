@@ -4,23 +4,26 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-consistency"
-version = "0.2.0"
-description = "Consistency receipts for multi-agent workflows: state snapshots, handoff packets, outcome checks, and run diffs."
+version = "0.3.0"
+description = "Reliability layer for AI agent workflows: validate state, handoffs, and outcomes before agents continue."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [
-  { name = "Karim Baidar - karimbaidar@yahoo.com" }
+  { name = "Karim Baidar", email = "karimbaidar@yahoo.com" }
 ]
 keywords = [
-  "agents",
+  "ai-agents",
+  "llm",
   "multi-agent",
   "workflow",
-  "consistency",
   "guardrails",
-  "durable-functions",
-  "observability"
+  "observability",
+  "reliability",
+  "handoff",
+  "outcome-verification",
+  "agentic-ai"
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -32,9 +35,19 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Software Development :: Quality Assurance",
   "Topic :: System :: Distributed Computing",
 ]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/karimbaidar/agent-consistency"
+Repository = "https://github.com/karimbaidar/agent-consistency"
+Issues = "https://github.com/karimbaidar/agent-consistency/issues"
+Demo = "https://github.com/karimbaidar/agent-consistency-refund-demo"
+
+[project.scripts]
+agent-consistency = "agent_consistency.cli:main"
 
 [project.optional-dependencies]
 dev = [

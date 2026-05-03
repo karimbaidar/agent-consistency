@@ -1,40 +1,22 @@
 # agent-consistency
 
-Prevent stale-state, broken-handoff, and false-success bugs in multi-agent workflows.
+Catch false-success bugs in AI agent workflows.
 
-`agent-consistency` is a small Python library for recording consistency receipts across agent
-workflow steps. It is not an agent framework, policy engine, or tracing dashboard. It focuses on a
-specific production problem:
+`agent-consistency` is a lightweight Python reliability layer for workflows
+where agents read state, hand off context, call tools, and claim real-world
+outcomes. It validates state reads, handoff contracts, proof artifacts, and
+outcome checks before the workflow continues.
 
-> Your agents may be smart, but are they acting on the same version of reality?
-
-Multi-agent systems often fail quietly because an agent reads stale state, receives an incomplete
-handoff, retries a side effect, or declares success after a tool returned `200` even though the
-business outcome is still not true. This library gives each step an explicit receipt:
-
-- what state was read
-- what assumptions were made
-- what state changed
-- what was handed off
-- what postcondition proved success
-
-The core package is generic. Azure Durable Functions is the first adapter because replay, resume,
-and orchestration history make these consistency problems especially visible.
-
-## What Is New In 0.2
-
-Version `0.2.0` adds causal consistency features for more realistic agent
-systems:
-
-- `HandoffContract` for declared inputs, evidence, produced artifacts, and verifier names
-- `ProofArtifact` for verified outputs such as provider reads, decisions, approvals, files, or tickets
-- `VerifierRegistry` for dynamic verifier selection without hard-coding every check inline
-- `consume_handoff` so downstream agents can reject stale, incomplete, or unverified work
-- `build_causality_graph` and `trace_causality` to explain which upstream step a downstream action relied on
-
-The goal is to make “done” mean more than “the last agent stopped talking.”
+Agent workflows can look successful while acting on stale state, missing
+handoff facts, or unverified tool results. `agent-consistency` adds lightweight
+contracts and receipts so workflows prove they read the right state, passed the
+right context, and verified the real business outcome.
 
 ## Install
+
+```bash
+python -m pip install agent-consistency
+```
 
 From a local checkout:
 
@@ -45,220 +27,169 @@ python -m pip install -U pip
 python -m pip install -e ".[dev]"
 ```
 
-After publishing:
-
-```bash
-python -m pip install agent-consistency
-```
-
-## Quickstart
+## Tiny Example
 
 ```python
 from agent_consistency import WorkflowRun
 
-run = WorkflowRun("refund-ord-1")
+run = WorkflowRun("refund-ord-1", on_violation="record")
 
-with run.step("history-agent", "load_order", step_id="history") as step:
-    order = {"id": "ord_1", "previous_refund_count": 0, "total": 42.5}
-    order_snapshot = step.read_state("order", order, version="order-v3")
-
+with run.step("intake-agent", "read_ticket", step_id="intake") as step:
+    order = {"id": "ord_1", "version": "order-v3", "previous_refund_count": 0}
+    order_snapshot = step.read_state("order", order, version=order["version"])
     handoff = step.handoff(
-        to_agent="eligibility-agent",
-        task="decide refund eligibility",
-        facts={"order": order, "policy_version": "policy-v12"},
+        to_agent="refund-agent",
+        task="issue refund",
+        facts={"order_id": "ord_1", "amount": 42.5, "previous_refund_count": 0},
         evidence={"order.previous_refund_count": order_snapshot.to_dict()},
-        required_facts=["order.id", "order.previous_refund_count", "policy_version"],
+        required_facts=["order_id", "amount", "previous_refund_count"],
         required_evidence=["order.previous_refund_count"],
     )
 
-with run.step("eligibility-agent", "decide", step_id="eligibility") as step:
-    policy = {"max_previous_refunds": 0, "max_amount": 100}
-    policy_snapshot = step.read_state("refund_policy", policy, version="policy-v12")
-    step.ensure_fresh(policy_snapshot, current_version="policy-v12")
-
-    step.require_supported_claims(
-        handoff,
-        {"eligible": True},
-        by=["order.previous_refund_count"],
-    )
-
 with run.step("refund-agent", "issue_refund", step_id="refund") as step:
-    provider_result = {"refund_id": "rf_1", "status": "settled"}
-    step.write_state("refund", provider_result, version="refund-rf_1")
+    step.consume_handoff(handoff)
+    provider_result = {"refund_id": "rf_1", "status": "pending"}
+    step.write_state("refund", provider_result, version="rf_1", include_value=True)
     step.verify_outcome(
         "refund_settled",
         lambda: provider_result["status"] == "settled",
-        details={"refund_id": "rf_1"},
+        failure_reason="refund provider did not confirm settlement",
     )
 
-for receipt in run.receipts():
-    print(receipt.to_dict())
+receipt = run.receipts()[-1]
+print(receipt.status)  # failed
+print(receipt.issues[0].message)
 ```
 
-## Core Features
+The agent can call the tool, but the workflow does not get to claim completion
+until the provider confirms the refund is settled.
 
-### State Snapshot Guard
+## What It Verifies
 
-Record the exact version and stable hash of state read by an agent step. Before a write, verify the
-step is still based on fresh state.
+- **State:** which version of the order, policy, ticket, or record an agent read.
+- **Handoff:** whether required facts, assumptions, constraints, and evidence
+  reached the next agent.
+- **Proof artifacts:** decisions, provider reads, approvals, files, tickets, or
+  other evidence attached to a receipt.
+- **Outcome verification:** whether the business outcome became true after a
+  side-effecting step.
+- **Causality:** which downstream step relied on which upstream handoff or
+  artifact.
 
-```python
-from agent_consistency import WorkflowRun
+## Why Output Validation Is Not Enough
 
-run = WorkflowRun("policy-run")
+Output validation can check whether a model response is shaped correctly.
+False-success bugs happen after that:
 
-with run.step("eligibility-agent", "decide") as step:
-    snapshot = step.read_state("refund_policy", {"limit": 100}, version="v12")
-    step.write_state(
-        "refund_decision",
-        {"eligible": True},
-        based_on=snapshot,
-        current_version="v12",
-    )
+- a policy agent approves from an old policy snapshot
+- a support handoff omits previous refund history
+- a tool returns `200 OK`, but the provider status is still `pending`
+- a customer-visible message says "done" before the business outcome happened
+
+`agent-consistency` focuses on proof before progression. It blocks unsafe
+continuation when state, handoff, or outcome verification fails.
+
+## When To Use It
+
+Use it around side-effecting agent workflows:
+
+- refunds
+- approvals
+- customer support actions
+- payment operations
+- ticket escalation
+- account access changes
+- records updates
+- workflows that send customer-visible messages
+
+## Where It Fits
+
+`agent-consistency` is complementary to orchestration and observability tools.
+
+| Tool category | How it fits |
+| --- | --- |
+| LangGraph, CrewAI, AutoGen, custom orchestrators | Wrap steps with receipt gates before moving to the next node. |
+| Langfuse, Phoenix, OpenTelemetry tracing | Keep traces; add contract and outcome checks for business correctness. |
+| Guardrails and structured output validators | Validate output shape; use this to verify state, handoffs, and side effects. |
+| Policy engines | Keep policy decisions; record the policy version and block stale reads. |
+
+It is not a replacement for your agent framework or tracing system. It is a
+reliability layer for workflows with side effects.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A["Agent step reads state"] --> B["State snapshot receipt"]
+    B --> C["Handoff contract"]
+    C --> D["Next agent consumes facts"]
+    D --> E["Tool or side effect"]
+    E --> F["Outcome verification"]
+    F --> G{"Gate result"}
+    G -- passed --> H["Continue workflow"]
+    G -- failed --> I["Block unsafe continuation"]
 ```
 
-By default, consistency violations raise exceptions. You can also use `on_violation="warn"` or
-`on_violation="record"`.
+## Reporting
 
-```python
-run = WorkflowRun("policy-run", on_violation="record")
+Summarize a run directory, `summary.json`, or `receipts.jsonl` file:
+
+```bash
+agent-consistency report runs/demo-happy-refund
+agent-consistency report runs/demo-pending-refund/receipts.jsonl --html report.html
 ```
 
-### Handoff Packet Validator
+The report command prints step status, issues, and outcome checks, and can write
+a small static HTML summary.
 
-Make agent-to-agent handoff explicit. Required fields can use dot paths.
+## Examples
 
-```python
-packet = step.handoff(
-    to_agent="refund-agent",
-    task="issue refund",
-    facts={"order": {"id": "ord_1", "previous_refund_count": 0}},
-    assumptions=["order data came from the primary store"],
-    constraints=["do not refund if the customer was already refunded"],
-    required_facts=["order.id", "order.previous_refund_count"],
-)
+Run the included examples from a local checkout:
+
+```bash
+python examples/refund_workflow.py
+python examples/approval_gate.py
+python examples/tool_outcome_verification.py
+python examples/stale_state_prevention.py
+python examples/langgraph_style_wrapper.py
 ```
 
-### Handoff Contracts And Proof Artifacts
+The `agent_consistency.integrations` module includes a small `run_gated_step`
+helper for wrapping LangGraph-style nodes, CrewAI tasks, AutoGen steps, or
+custom orchestrator functions.
 
-Use contracts when a downstream agent should only trust work that declares its
-inputs, proof artifacts, and verifier.
+## Visual Demo
 
-```python
-from agent_consistency import HandoffContract, WorkflowRun
+The companion demo is a browser-based **Agent Reliability Control Center** for a
+realistic refund workflow:
 
-contract = HandoffContract.define(
-    "refund_approval",
-    required_facts=["order_id", "amount"],
-    produced_artifacts=["policy_decision"],
-    verifier="refund_approval_check",
-)
-
-run = WorkflowRun("refund-ord-1")
-
-with run.step("policy-agent", "approve", step_id="policy") as step:
-    artifact = step.proof_artifact(
-        "policy_decision",
-        {"eligible": True, "policy_version": "policy-v12"},
-        kind="decision",
-        verified=True,
-        verifier="policy_rule",
-    )
-    packet = step.handoff(
-        to_agent="refund-agent",
-        task="issue refund",
-        facts={"order_id": "ord_1", "amount": 42.5},
-        artifacts=[artifact],
-        contract=contract,
-    )
-
-with run.step("refund-agent", "issue", step_id="refund") as step:
-    step.consume_handoff(packet, contract=contract)
+```bash
+git clone https://github.com/karimbaidar/agent-consistency-refund-demo.git
+cd agent-consistency-refund-demo
+python -m pip install -r requirements-dev.txt
+MODEL_PROVIDER=heuristic python -m uvicorn refund_demo.web:app --reload
 ```
 
-### Outcome Verifier
+Demo repo:
 
-A tool call is not complete just because it returned. Add a postcondition that proves the business
-outcome became true.
-
-```python
-step.verify_outcome(
-    "refund_settled",
-    lambda: payment_provider.get_refund("rf_1")["status"] == "settled",
-)
+```text
+https://github.com/karimbaidar/agent-consistency-refund-demo
 ```
 
-### Dynamic Verifier Registry
+The key moment: the refund provider returns `pending`, so the workflow blocks
+the customer-facing "refund completed" message.
 
-Dynamic verification means the verification strategy can depend on action,
-contract, risk, or data. It does not require an LLM.
+## Development
 
-```python
-from agent_consistency import VerifierRegistry
-
-registry = VerifierRegistry()
-
-@registry.register("refund_amount_check")
-def refund_amount_check(context):
-    return context.facts["amount"] < 500
-
-with run.step("refund-agent", "issue", step_id="refund") as step:
-    step.consume_handoff(packet, contract=contract, registry=registry)
+```bash
+python -m pip install -e ".[dev]"
+python -m pytest
+ruff check src tests examples
 ```
 
-### Run Diff
+Build and check the package:
 
-Compare two runs and see where state, assumptions, handoffs, deltas, or outcomes diverged.
-
-```python
-from agent_consistency import diff_runs
-
-diff = diff_runs(previous_run_receipts, current_run_receipts)
-print(diff.summary())
+```bash
+python -m build
+python -m twine check dist/*
 ```
-
-### Causality Trace
-
-Build a small graph of which receipts produced the handoffs and artifacts that
-later receipts consumed.
-
-```python
-from agent_consistency import trace_causality
-
-print(trace_causality(run.receipts()))
-```
-
-## Azure Durable Functions Adapter
-
-The Azure Durable adapter has no hard Azure dependency. It works with a Durable orchestration
-context-like object and provides:
-
-- Durable instance id as the consistency run id
-- replay-safe logging helper
-- deterministic activity keys for idempotent side effects
-- optional custom status updates with receipt summaries
-
-```python
-from agent_consistency.adapters import DurableConsistencyContext, replay_safe_log
-
-def orchestrator_function(context):
-    durable = DurableConsistencyContext(context)
-
-    with durable.step("refund-orchestrator", "schedule_refund", step_id="schedule") as step:
-        intent = {"order_id": "ord_1", "amount": 42.5}
-        activity_key = durable.activity_key("issue_refund", intent)
-        step.read_state("refund_intent", intent, version=activity_key)
-
-    durable.set_custom_status()
-```
-
-
-## Status
-
-This is an early library with a stable core direction:
-
-- generic consistency receipts
-- Azure Durable Functions as the first adapter
-- framework adapters later
-
-The goal is to catch quietly wrong success before it becomes production damage.

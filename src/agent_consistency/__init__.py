@@ -18,6 +18,12 @@ from .models import (
     StateSnapshot,
 )
 from .outcome import OutcomeVerifier, verify_outcome
+from .reporting import (
+    load_receipt_report,
+    render_text_summary,
+    summarize_report,
+    write_html_summary,
+)
 from .run import AgentStep, WorkflowRun
 from .store import InMemoryReceiptStore, JsonlReceiptStore, ReceiptStore, load_receipts
 from .verifier import (
@@ -28,7 +34,7 @@ from .verifier import (
     choose_verifier,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "AgentStep",
@@ -43,11 +49,13 @@ __all__ = [
     "HandoffValidationError",
     "InMemoryReceiptStore",
     "JsonlReceiptStore",
+    "load_receipt_report",
     "OutcomeResult",
     "OutcomeVerificationError",
     "OutcomeVerifier",
     "ProofArtifact",
     "ReceiptStore",
+    "render_text_summary",
     "RunDiff",
     "StaleStateError",
     "StateDelta",
@@ -61,6 +69,8 @@ __all__ = [
     "choose_verifier",
     "diff_runs",
     "load_receipts",
+    "summarize_report",
     "trace_causality",
     "verify_outcome",
+    "write_html_summary",
 ]
