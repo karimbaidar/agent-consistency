@@ -11,6 +11,9 @@
 - Install dev deps: `python -m pip install -e ".[dev]"`
 - Test: `python -m pytest`
 - Lint: `ruff check src tests examples`
+- CI install: `python -m pip install -U pip && python -m pip install -e ".[dev]"`
+- CI lint: `ruff check src tests`
+- CI test: `pytest --cov=agent_consistency --cov-report=term-missing`
 
 ## Rules
 
