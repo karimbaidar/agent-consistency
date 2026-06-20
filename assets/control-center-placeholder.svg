@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="Control center placeholder">
+  <rect width="1200" height="675" fill="#f4f7f8"/>
+  <rect x="44" y="50" width="1112" height="570" rx="8" fill="#ffffff" stroke="#d7dee8"/>
+  <rect x="82" y="102" width="268" height="466" rx="8" fill="#eef3f5"/>
+  <rect x="382" y="102" width="430" height="466" rx="8" fill="#fbfcfd" stroke="#d7dee8"/>
+  <rect x="844" y="102" width="274" height="466" rx="8" fill="#ffffff" stroke="#d7dee8"/>
+  <text x="600" y="604" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" fill="#17202e">Demo preview - replace with real capture</text>
+  <!-- TODO: Replace this placeholder with the control center screenshot. -->
+</svg>

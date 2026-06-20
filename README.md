@@ -1,33 +1,55 @@
 # agent-consistency
 
-Catch false-success bugs in AI agent workflows.
+[Live demo: watch a false-success bug get blocked](https://karimbaidar.github.io/agent-consistency-refund-demo/)
 
-`agent-consistency` is a lightweight Python reliability layer for workflows
-where agents read state, hand off context, call tools, and claim real-world
-outcomes. It validates state reads, handoff contracts, proof artifacts, and
-outcome checks before the workflow continues.
+Evidence receipts for AI agent workflows.
 
-Agent workflows can look successful while acting on stale state, missing
-handoff facts, or unverified tool results. `agent-consistency` adds lightweight
-contracts and receipts so workflows prove they read the right state, passed the
-right context, and verified the real business outcome.
+> Your refund agent called the payment API. The API returned 200 OK. The provider status was still `pending`. The agent was about to email "your refund is complete." `agent-consistency` blocks the message and records why.
 
-## Install
+Traces show what happened. Evals score what was said. `agent-consistency` decides whether the workflow was allowed to continue.
+
+[![PyPI](https://img.shields.io/pypi/v/agent-consistency.svg)](https://pypi.org/project/agent-consistency/)
+[![Python](https://img.shields.io/pypi/pyversions/agent-consistency.svg)](https://pypi.org/project/agent-consistency/)
+[![CI](https://img.shields.io/badge/CI-ready-177245)](https://github.com/karimbaidar/agent-consistency/actions)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+![Zero dependencies](https://img.shields.io/badge/core-zero_dependencies-126b68)
+
+![Demo preview - replace with real capture](assets/hero-gif-placeholder.svg)
+
+## The False-Success Bug
+
+A false-success bug happens when an agent reports completion before the real
+world agrees.
+
+Common sub-types:
+
+- **Tool success without outcome success:** a refund call returns 200 OK, but
+  provider status is still `pending`.
+- **Stale-state success:** an approval is made from policy v12 while v14 is
+  current.
+- **Thin-handoff success:** a downstream agent acts without required facts like
+  previous refund count.
+- **Unsupported-claim success:** a customer-visible message says "done" without
+  evidence for the claim.
+
+Output validation checks response shape. Tracing records the path taken.
+Neither blocks the next workflow step when the business outcome is still false.
+That is how a customer gets told money was returned before the provider settled
+the refund.
+
+## See It Catch A Lie In 10 Seconds
+
+[Open the live demo](https://karimbaidar.github.io/agent-consistency-refund-demo/)
+and run **Pending refund**. The naive flow sends the completed-refund message.
+The protected flow blocks it.
+
+![Before and after workflow image - replace with real capture](assets/before-after-placeholder.svg)
 
 ```bash
 python -m pip install agent-consistency
 ```
 
-From a local checkout:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -U pip
-python -m pip install -e ".[dev]"
-```
-
-## Tiny Example
+## Minimal Outcome Gate
 
 ```python
 from agent_consistency import WorkflowRun
@@ -35,7 +57,7 @@ from agent_consistency import WorkflowRun
 run = WorkflowRun("refund-ord-1", on_violation="record")
 
 with run.step("intake-agent", "read_ticket", step_id="intake") as step:
-    order = {"id": "ord_1", "version": "order-v3", "previous_refund_count": 0}
+    order = {"id": "ord_1", "previous_refund_count": 0, "version": "order-v3"}
     order_snapshot = step.read_state("order", order, version=order["version"])
     handoff = step.handoff(
         to_agent="refund-agent",
@@ -49,135 +71,65 @@ with run.step("intake-agent", "read_ticket", step_id="intake") as step:
 with run.step("refund-agent", "issue_refund", step_id="refund") as step:
     step.consume_handoff(handoff)
     provider_result = {"refund_id": "rf_1", "status": "pending"}
-    step.write_state("refund", provider_result, version="rf_1", include_value=True)
+    step.write_state("refund", provider_result, include_value=True)
     step.verify_outcome(
         "refund_settled",
         lambda: provider_result["status"] == "settled",
         failure_reason="refund provider did not confirm settlement",
+        details=provider_result,
     )
 
 receipt = run.receipts()[-1]
-print(receipt.status)  # failed
-print(receipt.issues[0].message)
+print(receipt.status)             # failed
+print(receipt.issues[0].message)  # outcome 'refund_settled' failed...
 ```
 
-The agent can call the tool, but the workflow does not get to claim completion
-until the provider confirms the refund is settled.
+The tool returned. The receipt says the outcome failed. The workflow does not
+get to continue into customer messaging.
 
-## What It Verifies
+## CLI Receipts
 
-- **State:** which version of the order, policy, ticket, or record an agent read.
-- **Handoff:** whether required facts, assumptions, constraints, and evidence
-  reached the next agent.
-- **Proof artifacts:** decisions, provider reads, approvals, files, tickets, or
-  other evidence attached to a receipt.
-- **Outcome verification:** whether the business outcome became true after a
-  side-effecting step.
-- **Causality:** which downstream step relied on which upstream handoff or
-  artifact.
+```bash
+agent-consistency report runs/demo-pending-refund/receipts.jsonl
+agent-consistency verify runs/demo-pending-refund/receipts.jsonl  # coming in 0.4
+```
 
-## Why Output Validation Is Not Enough
+Receipts are a flight recorder for AI agents: portable evidence you can inspect
+after an incident to see state reads, handoff facts, artifacts, outcomes, and
+the blocked reason.
 
-Output validation can check whether a model response is shaped correctly.
-False-success bugs happen after that:
+![Receipt timeline image - replace with real capture](assets/receipt-timeline-placeholder.svg)
 
-- a policy agent approves from an old policy snapshot
-- a support handoff omits previous refund history
-- a tool returns `200 OK`, but the provider status is still `pending`
-- a customer-visible message says "done" before the business outcome happened
+## Why This Is Necessary
 
-`agent-consistency` focuses on proof before progression. It blocks unsafe
-continuation when state, handoff, or outcome verification fails.
+Agents are moving from chat into workflows that send emails, issue refunds,
+approve changes, update records, and trigger operations. Once an agent takes a
+side effect, "the tool call worked" is not enough. The workflow needs evidence
+that the real-world condition became true before the next step makes a claim.
 
-## When To Use It
-
-Use it around side-effecting agent workflows:
-
-- refunds
-- approvals
-- customer support actions
-- payment operations
-- ticket escalation
-- account access changes
-- records updates
-- workflows that send customer-visible messages
+Without that gate, a green trace can still end in a customer-visible lie, a
+double refund, an approval against stale policy, or an incident where nobody can
+reconstruct which facts the agent relied on.
 
 ## Where It Fits
 
-`agent-consistency` is complementary to orchestration and observability tools.
+| Category | What it answers | What it misses without agent-consistency |
+| --- | --- | --- |
+| Guardrails | Is the output shaped correctly? | Whether the business outcome happened. |
+| Evals | Was the answer good in a test? | Whether this live workflow may continue. |
+| Tracing | What happened? | Whether the next action should be blocked. |
+| Orchestration | Which node runs next? | Whether the handoff facts and outcomes are valid. |
+| Policy engines | What rule applied? | Whether the agent used a fresh policy snapshot. |
 
-| Tool category | How it fits |
-| --- | --- |
-| LangGraph, CrewAI, AutoGen, custom orchestrators | Wrap steps with receipt gates before moving to the next node. |
-| Langfuse, Phoenix, OpenTelemetry tracing | Keep traces; add contract and outcome checks for business correctness. |
-| Guardrails and structured output validators | Validate output shape; use this to verify state, handoffs, and side effects. |
-| Policy engines | Keep policy decisions; record the policy version and block stale reads. |
+Keep those tools. Add receipts and gates where agents make claims about the
+world.
 
-It is not a replacement for your agent framework or tracing system. It is a
-reliability layer for workflows with side effects.
+## Roadmap
 
-## Architecture
-
-```mermaid
-flowchart LR
-    A["Agent step reads state"] --> B["State snapshot receipt"]
-    B --> C["Handoff contract"]
-    C --> D["Next agent consumes facts"]
-    D --> E["Tool or side effect"]
-    E --> F["Outcome verification"]
-    F --> G{"Gate result"}
-    G -- passed --> H["Continue workflow"]
-    G -- failed --> I["Block unsafe continuation"]
-```
-
-## Reporting
-
-Summarize a run directory, `summary.json`, or `receipts.jsonl` file:
-
-```bash
-agent-consistency report runs/demo-happy-refund
-agent-consistency report runs/demo-pending-refund/receipts.jsonl --html report.html
-```
-
-The report command prints step status, issues, and outcome checks, and can write
-a small static HTML summary.
-
-## Examples
-
-Run the included examples from a local checkout:
-
-```bash
-python examples/refund_workflow.py
-python examples/approval_gate.py
-python examples/tool_outcome_verification.py
-python examples/stale_state_prevention.py
-python examples/langgraph_style_wrapper.py
-```
-
-The `agent_consistency.integrations` module includes a small `run_gated_step`
-helper for wrapping LangGraph-style nodes, CrewAI tasks, AutoGen steps, or
-custom orchestrator functions.
-
-## Visual Demo
-
-The companion demo is a browser-based **Agent Reliability Control Center** for a
-realistic refund workflow:
-
-```bash
-git clone https://github.com/karimbaidar/agent-consistency-refund-demo.git
-cd agent-consistency-refund-demo
-python -m pip install -r requirements-dev.txt
-MODEL_PROVIDER=heuristic python -m uvicorn refund_demo.web:app --reload
-```
-
-Demo repo:
-
-```text
-https://github.com/karimbaidar/agent-consistency-refund-demo
-```
-
-The key moment: the refund provider returns `pending`, so the workflow blocks
-the customer-facing "refund completed" message.
+- v0.4: tamper-evident receipt chains and `agent-consistency verify`
+- v0.5: graph export and richer receipt inspection
+- v0.6: first stable graph-framework adapter
+- v1.0: stable receipt schema
 
 ## Development
 
@@ -187,9 +139,4 @@ python -m pytest
 ruff check src tests examples
 ```
 
-Build and check the package:
-
-```bash
-python -m build
-python -m twine check dist/*
-```
+Apache-2.0.
