@@ -1,0 +1,57 @@
+site_name: agent-consistency
+site_description: Stop agents from saying done before the world says done.
+site_url: https://karimbaidar.github.io/agent-consistency/
+repo_url: https://github.com/karimbaidar/agent-consistency
+repo_name: karimbaidar/agent-consistency
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: teal
+      accent: red
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths:
+            - src
+          options:
+            docstring_style: google
+            show_source: false
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Concepts: concepts.md
+  - Quickstart: quickstart.md
+  - Detect Mode: detect-mode.md
+  - Verify and Tamper Evidence: verify-tamper-evidence.md
+  - Bug Zoo: bug-zoo.md
+  - Adapters: adapters.md
+  - CLI: cli.md
+  - Integrations: integrations.md
+  - False-Success Bugs: false-success-bugs.md
+  - Reference Notes:
+      - False-Success Summary: false-success.md
+      - Outcome Verification: outcome-verification.md
+      - Receipts: receipts.md
+      - Why agent-consistency: why-agent-consistency.md
+  - Launch Kit: launch.md
+  - Roadmap: roadmap.md
+  - API Reference:
+      - Runtime: api/runtime.md
+      - Detection: api/detection.md
+      - Adapters: api/adapters.md

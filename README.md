@@ -4,6 +4,8 @@
 
 Evidence receipts for AI agent workflows.
 
+[Docs site](https://karimbaidar.github.io/agent-consistency/)
+
 > Your refund agent called the payment API. The API returned 200 OK. The provider status was still `pending`. The agent was about to email "your refund is complete." `agent-consistency` blocks the message and records why.
 
 Traces show what happened. Evals score what was said. `agent-consistency` decides whether the workflow was allowed to continue.
@@ -67,9 +69,9 @@ agent-consistency detect runs/demo-pending-refund/receipts.jsonl
 ```
 
 `detect` reports missing gates, stale reads, dropped handoff facts, failed
-outcomes, and customer-visible actions after unresolved outcomes. It exits
-non-zero on high-severity risk. It cannot know what an agent claimed unless your
-workflow declares the outcomes and evidence that matter.
+outcomes, and customer-visible actions after unresolved or unverified outcomes.
+It exits non-zero on high-severity risk. It cannot know what an agent claimed
+unless your workflow declares the outcomes and evidence that matter.
 
 ## Minimal Outcome Gate
 
@@ -155,11 +157,12 @@ world.
 ## Roadmap
 
 - v0.5: graph export and richer receipt inspection
-- v0.6: more graph-framework adapters
+- v0.6: stable framework adapter APIs
 - v1.0: stable receipt schema
 
 ## Docs
 
+- [Docs site](https://karimbaidar.github.io/agent-consistency/)
 - [Detect mode](docs/detect-mode.md)
 - [Receipts and verification](docs/receipts.md)
 - [Outcome verification](docs/outcome-verification.md)
@@ -177,7 +180,9 @@ The canonical false-success examples live in `examples/`:
 - `customer_message_supported_claims.py`
 
 There is also a dependency-free LangGraph-style adapter example in
-`examples/langgraph_style_wrapper.py`.
+`examples/langgraph_style_wrapper.py`, plus CrewAI-style and AutoGen-style
+examples in `examples/crewai_style_adapter.py` and
+`examples/autogen_style_adapter.py`.
 
 ## Development
 
