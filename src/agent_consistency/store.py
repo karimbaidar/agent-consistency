@@ -31,6 +31,8 @@ class InMemoryReceiptStore:
                     f"receipt already exists for {receipt.key}",
                     receipt_key=receipt.key,
                 )
+            previous_digest = self._receipts[-1].receipt_digest if self._receipts else None
+            receipt.prepare_for_storage(previous_receipt_digest=previous_digest)
             self._receipts.append(receipt)
             self._keys.add(receipt.key)
 
@@ -51,13 +53,18 @@ class JsonlReceiptStore:
 
     def add(self, receipt: ConsistencyReceipt) -> None:
         with self._lock:
+            existing = self.list()
             if self.dedupe:
-                existing_keys = {stored.key for stored in self.list(run_id=receipt.run_id)}
+                existing_keys = {
+                    stored.key for stored in existing if stored.run_id == receipt.run_id
+                }
                 if receipt.key in existing_keys:
                     raise DuplicateReceiptError(
                         f"receipt already exists for {receipt.key}",
                         receipt_key=receipt.key,
                     )
+            previous_digest = existing[-1].receipt_digest if existing else None
+            receipt.prepare_for_storage(previous_receipt_digest=previous_digest)
             with self.path.open("a", encoding="utf-8") as handle:
                 handle.write(stable_json(receipt.to_dict()) + "\n")
 

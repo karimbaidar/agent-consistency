@@ -5,6 +5,19 @@ from typing import Any, Dict, List, Optional
 from ._time import utc_now_iso
 from .serialization import stable_digest, to_jsonable
 
+RECEIPT_SCHEMA_VERSION = "1"
+RECEIPT_DIGEST_FIELD = "receipt_digest"
+
+
+def canonical_receipt_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
+    canonical = dict(payload)
+    canonical.pop(RECEIPT_DIGEST_FIELD, None)
+    return canonical
+
+
+def compute_receipt_digest(payload: Mapping[str, Any]) -> str:
+    return stable_digest(canonical_receipt_payload(payload))
+
 
 @dataclass(frozen=True)
 class StateSnapshot:
@@ -227,6 +240,10 @@ class ConsistencyReceipt:
     step_id: str
     agent: str
     action: str
+    schema_version: str = RECEIPT_SCHEMA_VERSION
+    receipt_id: str = ""
+    previous_receipt_digest: Optional[str] = None
+    receipt_digest: Optional[str] = None
     assumptions: List[str] = field(default_factory=list)
     state_reads: List[StateSnapshot] = field(default_factory=list)
     state_deltas: List[StateDelta] = field(default_factory=list)
@@ -248,6 +265,15 @@ class ConsistencyReceipt:
     def key(self) -> str:
         return f"{self.run_id}:{self.step_id}"
 
+    def prepare_for_storage(self, *, previous_receipt_digest: Optional[str] = None) -> None:
+        self.schema_version = self.schema_version or RECEIPT_SCHEMA_VERSION
+        self.receipt_id = self.receipt_id or self.key
+        self.previous_receipt_digest = previous_receipt_digest
+        self.receipt_digest = self.compute_digest()
+
+    def compute_digest(self) -> str:
+        return compute_receipt_digest(self.to_dict(include_receipt_digest=False))
+
     def finish(self, *, error: Optional[BaseException] = None) -> None:
         self.finished_at = utc_now_iso()
         if error is not None:
@@ -258,8 +284,10 @@ class ConsistencyReceipt:
         error_issue = any(issue.severity == "error" for issue in self.issues)
         self.status = "failed" if failed_outcome or error_issue else "passed"
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
+    def to_dict(self, *, include_receipt_digest: bool = True) -> Dict[str, Any]:
+        payload = {
+            "schema_version": self.schema_version or RECEIPT_SCHEMA_VERSION,
+            "receipt_id": self.receipt_id or self.key,
             "run_id": self.run_id,
             "step_id": self.step_id,
             "agent": self.agent,
@@ -280,13 +308,21 @@ class ConsistencyReceipt:
             "error": to_jsonable(self.error),
             "created_at": self.created_at,
             "finished_at": self.finished_at,
+            "previous_receipt_digest": self.previous_receipt_digest,
         }
+        if include_receipt_digest:
+            payload[RECEIPT_DIGEST_FIELD] = self.receipt_digest
+        return payload
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> "ConsistencyReceipt":
         from .handoff import HandoffPacket
 
         return cls(
+            schema_version=str(payload.get("schema_version") or RECEIPT_SCHEMA_VERSION),
+            receipt_id=str(payload.get("receipt_id") or ""),
+            previous_receipt_digest=payload.get("previous_receipt_digest"),
+            receipt_digest=payload.get(RECEIPT_DIGEST_FIELD),
             run_id=str(payload["run_id"]),
             step_id=str(payload["step_id"]),
             agent=str(payload["agent"]),

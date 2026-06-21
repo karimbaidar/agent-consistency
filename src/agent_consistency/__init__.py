@@ -18,6 +18,12 @@ from .models import (
     StateSnapshot,
 )
 from .outcome import OutcomeVerifier, verify_outcome
+from .receipt_verification import (
+    ReceiptVerificationReport,
+    VerificationIssue,
+    render_verify_report,
+    verify_receipt_file,
+)
 from .reporting import (
     load_receipt_report,
     render_text_summary,
@@ -55,12 +61,15 @@ __all__ = [
     "OutcomeVerifier",
     "ProofArtifact",
     "ReceiptStore",
+    "ReceiptVerificationReport",
     "render_text_summary",
+    "render_verify_report",
     "RunDiff",
     "StaleStateError",
     "StateDelta",
     "StateSnapshot",
     "VerificationContext",
+    "VerificationIssue",
     "VerifierRegistry",
     "WorkflowRun",
     "all_of",
@@ -71,6 +80,7 @@ __all__ = [
     "load_receipts",
     "summarize_report",
     "trace_causality",
+    "verify_receipt_file",
     "verify_outcome",
     "write_html_summary",
 ]

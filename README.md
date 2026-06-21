@@ -91,12 +91,17 @@ get to continue into customer messaging.
 
 ```bash
 agent-consistency report runs/demo-pending-refund/receipts.jsonl
-agent-consistency verify runs/demo-pending-refund/receipts.jsonl  # coming in 0.4
+agent-consistency verify runs/demo-pending-refund/receipts.jsonl
+agent-consistency schema
 ```
 
 Receipts are a flight recorder for AI agents: portable evidence you can inspect
 after an incident to see state reads, handoff facts, artifacts, outcomes, and
 the blocked reason.
+
+`verify` separates file integrity from run semantics, so a deliberately blocked
+pending-refund run can report `Integrity: verified` and `Run status: failed as
+expected`.
 
 ![Receipt timeline image - replace with real capture](assets/receipt-timeline-placeholder.svg)
 
@@ -126,10 +131,16 @@ world.
 
 ## Roadmap
 
-- v0.4: tamper-evident receipt chains and `agent-consistency verify`
 - v0.5: graph export and richer receipt inspection
 - v0.6: first stable graph-framework adapter
 - v1.0: stable receipt schema
+
+## Docs
+
+- [Receipts and verification](docs/receipts.md)
+- [Outcome verification](docs/outcome-verification.md)
+- [False-success bugs](docs/false-success.md)
+- [Why agent-consistency](docs/why-agent-consistency.md)
 
 ## Development
 

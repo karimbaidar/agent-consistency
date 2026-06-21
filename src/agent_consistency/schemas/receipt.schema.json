@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/karimbaidar/agent-consistency/schemas/receipt.schema.json",
+  "title": "agent-consistency receipt",
+  "type": "object",
+  "required": [
+    "run_id",
+    "step_id",
+    "agent",
+    "action",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Receipt schema version. Added in v0.4 receipt chains."
+    },
+    "receipt_id": {
+      "type": "string",
+      "description": "Stable receipt identifier, usually run_id:step_id."
+    },
+    "previous_receipt_digest": {
+      "type": ["string", "null"],
+      "description": "Digest of the previous receipt in the JSONL file, or null for the first receipt."
+    },
+    "receipt_digest": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 digest of the canonical receipt JSON excluding this field."
+    },
+    "run_id": { "type": "string" },
+    "step_id": { "type": "string" },
+    "agent": { "type": "string" },
+    "action": { "type": "string" },
+    "assumptions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "state_reads": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/state_snapshot" }
+    },
+    "state_deltas": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/state_delta" }
+    },
+    "handoffs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/handoff" }
+    },
+    "proof_artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/proof_artifact" }
+    },
+    "outcomes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/outcome" }
+    },
+    "issues": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/issue" }
+    },
+    "parent_receipt_keys": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "consumed_handoff_ids": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "produced_handoff_ids": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "consumed_artifact_ids": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "status": {
+      "type": "string",
+      "enum": ["running", "passed", "failed"]
+    },
+    "error": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "created_at": { "type": "string" },
+    "finished_at": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "state_snapshot": {
+      "type": "object",
+      "required": ["name", "version", "digest", "captured_at"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "digest": { "type": "string" },
+        "captured_at": { "type": "string" },
+        "metadata": { "type": "object", "additionalProperties": true },
+        "value": true
+      },
+      "additionalProperties": true
+    },
+    "state_delta": {
+      "type": "object",
+      "required": ["name", "operation", "after"],
+      "properties": {
+        "name": { "type": "string" },
+        "operation": { "type": "string" },
+        "before": {
+          "anyOf": [{ "$ref": "#/$defs/state_snapshot" }, { "type": "null" }]
+        },
+        "after": { "$ref": "#/$defs/state_snapshot" },
+        "metadata": { "type": "object", "additionalProperties": true }
+      },
+      "additionalProperties": true
+    },
+    "proof_artifact": {
+      "type": "object",
+      "required": ["artifact_id", "name", "kind", "digest", "verified", "created_at"],
+      "properties": {
+        "artifact_id": { "type": "string" },
+        "name": { "type": "string" },
+        "kind": { "type": "string" },
+        "digest": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "uri": { "type": ["string", "null"] },
+        "verifier": { "type": ["string", "null"] },
+        "details": { "type": "object", "additionalProperties": true },
+        "created_at": { "type": "string" },
+        "value": true
+      },
+      "additionalProperties": true
+    },
+    "outcome": {
+      "type": "object",
+      "required": ["name", "passed", "reason", "details", "checked_at"],
+      "properties": {
+        "name": { "type": "string" },
+        "passed": { "type": "boolean" },
+        "reason": { "type": "string" },
+        "details": { "type": "object", "additionalProperties": true },
+        "checked_at": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "issue": {
+      "type": "object",
+      "required": ["code", "message", "severity", "details", "created_at"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "severity": { "type": "string" },
+        "details": { "type": "object", "additionalProperties": true },
+        "created_at": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "handoff": {
+      "type": "object",
+      "required": [
+        "from_agent",
+        "to_agent",
+        "task",
+        "facts",
+        "evidence",
+        "handoff_id",
+        "input_digest",
+        "verified",
+        "created_at"
+      ],
+      "properties": {
+        "from_agent": { "type": "string" },
+        "to_agent": { "type": "string" },
+        "task": { "type": "string" },
+        "facts": { "type": "object", "additionalProperties": true },
+        "assumptions": { "type": "array", "items": { "type": "string" } },
+        "missing_info": { "type": "array", "items": { "type": "string" } },
+        "constraints": { "type": "array", "items": { "type": "string" } },
+        "evidence": { "type": "object", "additionalProperties": true },
+        "artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/proof_artifact" }
+        },
+        "contract": {
+          "type": ["object", "null"],
+          "additionalProperties": true
+        },
+        "handoff_id": { "type": "string" },
+        "input_digest": { "type": "string" },
+        "produced_by_receipt": { "type": ["string", "null"] },
+        "verified": { "type": "boolean" },
+        "metadata": { "type": "object", "additionalProperties": true },
+        "created_at": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  }
+}
