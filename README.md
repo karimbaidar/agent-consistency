@@ -4,7 +4,7 @@
 
 Evidence receipts for AI agent workflows.
 
-[Docs site](https://karimbaidar.github.io/agent-consistency/)
+[Docs source](docs/index.md)
 
 > Your refund agent called the payment API. The API returned 200 OK. The provider status was still `pending`. The agent was about to email "your refund is complete." `agent-consistency` blocks the message and records why.
 
@@ -162,7 +162,7 @@ world.
 
 ## Docs
 
-- [Docs site](https://karimbaidar.github.io/agent-consistency/)
+- [Docs source](docs/index.md)
 - [Detect mode](docs/detect-mode.md)
 - [Receipts and verification](docs/receipts.md)
 - [Outcome verification](docs/outcome-verification.md)

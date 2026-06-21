@@ -10,6 +10,7 @@
 
 - richer graph export for receipt chains
 - better visual inspection of parent receipts, handoffs, and artifacts
+- publish the MkDocs site when GitHub Pages is available for the repository
 
 ## v0.6: LangGraph Adapter
 
