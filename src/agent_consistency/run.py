@@ -29,11 +29,23 @@ class WorkflowRun:
         store: Optional[ReceiptStore] = None,
         on_violation: str = "raise",
     ) -> None:
-        if on_violation not in {"raise", "warn", "record"}:
-            raise ValueError("on_violation must be one of: raise, warn, record")
+        if on_violation not in {"raise", "warn", "record", "report", "detect"}:
+            raise ValueError(
+                "on_violation must be one of: raise, warn, record, report, detect"
+            )
         self.run_id = run_id or str(uuid.uuid4())
         self.store = store or InMemoryReceiptStore()
         self.on_violation = on_violation
+
+    @classmethod
+    def detect(
+        cls,
+        run_id: Optional[str] = None,
+        *,
+        store: Optional[ReceiptStore] = None,
+    ) -> "WorkflowRun":
+        """Create a non-blocking run for false-success risk reporting."""
+        return cls(run_id, store=store, on_violation="report")
 
     def step(
         self,
@@ -440,6 +452,6 @@ class AgentStep:
         if self.run.on_violation == "warn":
             warnings.warn(message, RuntimeWarning, stacklevel=3)
             return
-        if self.run.on_violation == "record":
+        if self.run.on_violation in {"record", "report", "detect"}:
             return
         raise exception_factory(message)

@@ -1,32 +1,24 @@
-from agent_consistency import WorkflowRun
-from agent_consistency.integrations import run_gated_step
+from agent_consistency import detect_risks, render_risk_report
+from agent_consistency.adapters import LangGraphConsistencyAdapter
+
+
+def refund_node(state):
+    return {"refund": {"id": "rf_1", "status": state["provider_status"]}}
 
 
 def main() -> None:
-    run = WorkflowRun("langgraph-style-refund")
-    state = {
-        "order": {"id": "ord_1", "version": "order-v3", "total": 42.5},
-        "refund": {"status": "settled"},
-    }
-
-    def refund_node(step):
-        order = step.read_state("order", state["order"], version=state["order"]["version"])
-        provider_result = {"refund_id": "rf_1", "status": state["refund"]["status"]}
-        step.write_state("refund", provider_result, based_on=order, include_value=True)
-        return provider_result
-
-    result = run_gated_step(
-        run,
-        "refund-node",
-        "issue_refund",
+    adapter = LangGraphConsistencyAdapter.detect("langgraph-style-refund")
+    refund = adapter.wrap_node(
         refund_node,
-        step_id="refund",
+        name="refund-node",
+        action="issue_refund",
         outcome_name="refund_settled",
-        outcome_check=lambda refund: refund["status"] == "settled",
+        outcome_check=lambda result: result["refund"]["status"] == "settled",
     )
 
+    result = refund({"provider_status": "pending"})
     print(result)
-    print(run.receipts()[0].to_dict())
+    print(render_risk_report(detect_risks(adapter.receipts())))
 
 
 if __name__ == "__main__":

@@ -1,3 +1,3 @@
-from .step_gate import gated_step, run_gated_step
+from .step_gate import detect_workflow, gated_step, run_detected_workflow, run_gated_step
 
-__all__ = ["gated_step", "run_gated_step"]
+__all__ = ["detect_workflow", "gated_step", "run_detected_workflow", "run_gated_step"]

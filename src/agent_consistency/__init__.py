@@ -1,5 +1,12 @@
 from .causality import CausalityGraph, build_causality_graph, trace_causality
 from .contracts import HandoffContract
+from .detect import (
+    RiskFinding,
+    RiskReport,
+    detect_receipt_file,
+    detect_risks,
+    render_risk_report,
+)
 from .diff import DiffItem, RunDiff, diff_runs
 from .errors import (
     ConsistencyError,
@@ -62,7 +69,12 @@ __all__ = [
     "ProofArtifact",
     "ReceiptStore",
     "ReceiptVerificationReport",
+    "RiskFinding",
+    "RiskReport",
+    "detect_receipt_file",
+    "detect_risks",
     "render_text_summary",
+    "render_risk_report",
     "render_verify_report",
     "RunDiff",
     "StaleStateError",

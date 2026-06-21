@@ -49,6 +49,28 @@ The protected flow blocks it.
 python -m pip install agent-consistency
 ```
 
+## Find False-Success Risk In One Line
+
+Start in detect mode before you refactor a workflow around gates:
+
+```python
+from agent_consistency.integrations import detect_workflow
+
+risk_report = detect_workflow(existing_workflow)
+print(risk_report.to_dict())
+```
+
+Or run it against stored receipts in CI:
+
+```bash
+agent-consistency detect runs/demo-pending-refund/receipts.jsonl
+```
+
+`detect` reports missing gates, stale reads, dropped handoff facts, failed
+outcomes, and customer-visible actions after unresolved outcomes. It exits
+non-zero on high-severity risk. It cannot know what an agent claimed unless your
+workflow declares the outcomes and evidence that matter.
+
 ## Minimal Outcome Gate
 
 ```python
@@ -91,6 +113,7 @@ get to continue into customer messaging.
 
 ```bash
 agent-consistency report runs/demo-pending-refund/receipts.jsonl
+agent-consistency detect runs/demo-pending-refund/receipts.jsonl
 agent-consistency verify runs/demo-pending-refund/receipts.jsonl
 agent-consistency schema
 ```
@@ -132,15 +155,29 @@ world.
 ## Roadmap
 
 - v0.5: graph export and richer receipt inspection
-- v0.6: first stable graph-framework adapter
+- v0.6: more graph-framework adapters
 - v1.0: stable receipt schema
 
 ## Docs
 
+- [Detect mode](docs/detect-mode.md)
 - [Receipts and verification](docs/receipts.md)
 - [Outcome verification](docs/outcome-verification.md)
 - [False-success bugs](docs/false-success.md)
 - [Why agent-consistency](docs/why-agent-consistency.md)
+
+## Bug Zoo
+
+The canonical false-success examples live in `examples/`:
+
+- `minimal_outcome_gate.py`
+- `refund_false_success.py`
+- `handoff_contract.py`
+- `stale_state.py`
+- `customer_message_supported_claims.py`
+
+There is also a dependency-free LangGraph-style adapter example in
+`examples/langgraph_style_wrapper.py`.
 
 ## Development
 

@@ -3,6 +3,7 @@ import importlib.resources
 import sys
 from typing import List, Optional
 
+from .detect import detect_receipt_file, render_risk_report
 from .receipt_verification import render_verify_report, verify_receipt_file
 from .reporting import (
     load_receipt_report,
@@ -29,6 +30,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     verify_parser.add_argument("path", help="path to receipts.jsonl")
 
+    detect_parser = subparsers.add_parser(
+        "detect",
+        help="detect false-success risk in a receipt JSONL file or run dir",
+    )
+    detect_parser.add_argument("path", help="path to summary.json, receipts.jsonl, or run dir")
+
     subparsers.add_parser("schema", help="print the receipt JSON Schema")
 
     args = parser.parse_args(argv)
@@ -49,6 +56,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         verification_report = verify_receipt_file(args.path)
         sys.stdout.write(render_verify_report(verification_report))
         return 0 if verification_report.ok else 1
+
+    if args.command == "detect":
+        try:
+            risk_report = detect_receipt_file(args.path)
+        except Exception as exc:
+            sys.stderr.write(f"Error: {exc}\n")
+            return 1
+        sys.stdout.write(render_risk_report(risk_report))
+        return 1 if risk_report.has_high_severity else 0
 
     if args.command == "schema":
         schema = importlib.resources.files("agent_consistency.schemas").joinpath(
