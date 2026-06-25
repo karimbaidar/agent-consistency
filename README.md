@@ -184,6 +184,28 @@ There is also a dependency-free LangGraph-style adapter example in
 examples in `examples/crewai_style_adapter.py` and
 `examples/autogen_style_adapter.py`.
 
+## Microsoft Adapter
+
+Phase 3 adds a dependency-light Microsoft Agent Framework-shaped adapter:
+
+```python
+from agent_consistency.integrations import MicrosoftAgentFrameworkConsistencyAdapter
+
+adapter = MicrosoftAgentFrameworkConsistencyAdapter(run_id="refund-maf")
+refund_agent = adapter.wrap_agent_method(
+    maf_refund_agent,
+    method="invoke",
+    action="issue_refund",
+    criticality="financial",
+    outcome_name="refund_settled",
+    outcome_check=lambda result: result["status"] == "settled",
+)
+```
+
+The adapter wraps agent methods and handoff records without importing Microsoft
+packages into the core install. The quickest generic path is in
+`examples/instrument_existing_agent/`.
+
 ## Development
 
 ```bash

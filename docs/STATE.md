@@ -1,13 +1,13 @@
 # Build State
 
 ## Current phase
-Phase 3 — Microsoft Agent Framework adapter + instrument-your-own-agent
+Phase 4 — False-success benchmark + leaderboard
 
 ## Roadmap
 - [x] Phase 0 — Foundation & context scaffolding
 - [x] Phase 1 — Production-grade reliability core
 - [x] Phase 2 — Framework-agnostic API + OpenTelemetry
-- [ ] Phase 3 — Microsoft Agent Framework adapter + instrument-your-own-agent
+- [x] Phase 3 — Microsoft Agent Framework adapter + instrument-your-own-agent
 - [ ] Phase 4 — False-success benchmark + leaderboard
 - [ ] Phase 5 — Positioning, docs & compliance framing
 
@@ -26,6 +26,9 @@ Phase 3 — Microsoft Agent Framework adapter + instrument-your-own-agent
 - Phase 2 added framework-agnostic `reliability_gate(...)` and
   `verified_step(...)`, `GateDecision`, lazy optional OpenTelemetry span
   emission, fake-tracer tests, and API docs.
+- Phase 3 added `MicrosoftAgentFrameworkConsistencyAdapter`, dependency-light
+  wrapping for MAF-shaped agent methods and handoff records, deterministic fake
+  MAF integration tests, and `examples/instrument_existing_agent/`.
 
 ## Decisions
 - Keep the core dependency-free; optional integrations must live behind extras.
@@ -36,6 +39,9 @@ Phase 3 — Microsoft Agent Framework adapter + instrument-your-own-agent
   automatic compensation.
 - Failed outcomes stay visible as failed receipts even when a low-criticality
   policy fail-opens and allows continuation.
+- Microsoft Agent Framework support is currently an interface around
+  MAF-shaped callables; it intentionally avoids importing Microsoft packages in
+  the base install.
 
 ## Gotchas
 - GitHub Pages deploy remains gated by `DEPLOY_GITHUB_PAGES` because the repo
@@ -48,8 +54,8 @@ Phase 3 — Microsoft Agent Framework adapter + instrument-your-own-agent
   when validating this copied checkout directly.
 
 ## Next
-- Implement Phase 3 Microsoft Agent Framework adapter and
-  `examples/instrument_existing_agent/`.
+- Implement Phase 4 benchmark scenarios, harness, generated results, and
+  leaderboard.
 
 ## Open questions for the human
 - None.

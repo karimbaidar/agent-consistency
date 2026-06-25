@@ -17,6 +17,7 @@ from .errors import (
     StaleStateError,
 )
 from .handoff import HandoffPacket
+from .integrations.microsoft_agent_framework import MicrosoftAgentFrameworkConsistencyAdapter
 from .models import (
     ConsistencyIssue,
     ConsistencyReceipt,
@@ -79,6 +80,7 @@ __all__ = [
     "InMemoryReceiptStore",
     "JsonlReceiptStore",
     "load_receipt_report",
+    "MicrosoftAgentFrameworkConsistencyAdapter",
     "OutcomeResult",
     "OutcomeVerificationError",
     "OutcomeVerifier",

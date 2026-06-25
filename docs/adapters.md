@@ -26,6 +26,66 @@ report = detect_risks(adapter.receipts())
 Use `pass_step=True` when the node needs direct access to `read_state`,
 `handoff`, or `proof_artifact`.
 
+## Microsoft Agent Framework-Shaped Agents
+
+```python
+from agent_consistency.integrations import MicrosoftAgentFrameworkConsistencyAdapter
+
+adapter = MicrosoftAgentFrameworkConsistencyAdapter(run_id="refund-maf")
+
+refund_agent = adapter.wrap_agent_method(
+    maf_refund_agent,
+    method="invoke",
+    action="issue_refund",
+    criticality="financial",
+    outcome_name="refund_settled",
+    outcome_check=lambda result: result["status"] == "settled",
+)
+
+refund = refund_agent({"refund_id": "rf_1"})
+```
+
+The adapter is dependency-light: it wraps MAF-shaped agent methods and callables
+without importing Microsoft Agent Framework in the base package. Install
+`agent-consistency[microsoft]` for the integration surface; the current adapter
+does not require extra runtime packages.
+
+Use `record_handoff(...)` when you want to preserve a MAF-style transfer before
+the downstream agent runs:
+
+```python
+packet = adapter.record_handoff(
+    from_agent="intake-agent",
+    to_agent="refund-agent",
+    task="issue refund",
+    facts={"order_id": "ord_1", "amount": 42.5},
+    required_facts=["order_id", "amount"],
+)
+```
+
+## Instrument An Existing Agent
+
+The fastest path is often to wrap one existing side-effecting method:
+
+```python
+from agent_consistency import RefundSettlementVerifier, WorkflowRun, verified_step
+
+run = WorkflowRun("refund-ord-1")
+agent.issue_refund = verified_step(
+    run,
+    "refund-agent",
+    "issue_refund",
+    criticality="financial",
+    outcome_verifier=lambda result: RefundSettlementVerifier(
+        result["refund"]["refund_id"],
+        agent.provider_lookup,
+    ),
+)(agent.issue_refund)
+```
+
+See `examples/instrument_existing_agent/` for the before/after version that runs
+in CI.
+
 ## CrewAI-Style Tools And Tasks
 
 ```python
@@ -68,7 +128,10 @@ Use the adapter around reply functions, tool handlers, or group-chat callbacks.
 
 ## Why Interfaces First
 
-LangGraph, CrewAI, and AutoGen have different object models and version churn.
-These adapters expose the stable part: wrapping a callable step, attaching a
-receipt, and verifying the outcome that matters. Framework-specific sugar can
-grow from this interface without adding heavy dependencies to the base install.
+LangGraph, CrewAI, AutoGen, and Microsoft Agent Framework have different object
+models and version churn. These adapters expose the stable part: wrapping a
+callable step, attaching a receipt, and verifying the outcome that matters.
+Framework-specific sugar can grow from this interface without adding heavy
+dependencies to the base install. Additional adapters, including deeper
+LangGraph, CrewAI, AutoGen, and OpenAI Agents SDK integrations, are future work
+and should follow `skills/add-framework-adapter/SKILL.md`.

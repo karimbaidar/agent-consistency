@@ -34,4 +34,5 @@ Use this when adding a new framework or orchestrator integration.
 
 - Prefer wrapping callables and fake framework contexts. This keeps CI
   deterministic and avoids pulling heavy dependencies into the core install.
-
+- For Microsoft Agent Framework, wrap MAF-shaped `invoke`/`run` methods and
+  handoff payloads without importing Microsoft packages in base tests.
