@@ -32,4 +32,5 @@ Use this when adding an outcome check for a business-visible side effect.
 ## Gotchas learned
 
 - A successful tool response is evidence, not the outcome itself.
-
+- Provider errors should be converted into failed `OutcomeResult` records when
+  possible so fail-open / fail-closed policy can decide continuation.

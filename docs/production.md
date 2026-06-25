@@ -7,7 +7,8 @@ each side effect.
 
 ## Continuation Policy
 
-`WorkflowRun` defaults to `on_violation="raise"`. Use that mode when a failed
+`WorkflowRun` defaults to `on_violation="raise"` and a fail-closed policy for
+high, irreversible, and financial criticality. Use that mode when a failed
 state, handoff, claim, or outcome check should stop downstream continuation.
 
 Other modes are useful during rollout:
@@ -19,6 +20,23 @@ Other modes are useful during rollout:
 For irreversible, financial, customer-visible, or compliance-sensitive actions,
 start with blocking behavior and only relax it when the surrounding workflow has
 a separate compensating control.
+
+Each step can declare criticality:
+
+```python
+with run.step(
+    "refund-agent",
+    "issue_refund",
+    step_id="refund",
+    criticality="financial",
+    idempotency_key="refund:ord_1",
+) as step:
+    ...
+```
+
+Low-criticality gates fail-open by default and record a warning. Financial and
+irreversible gates always fail-closed. Every issue includes the policy decision
+that was applied.
 
 ## Outcome Verification
 
@@ -33,17 +51,40 @@ The outcome verifier should answer the business question the next step depends
 on: "is the refund settled?", "does the ticket exist?", or "is this policy
 snapshot still current?"
 
+`RefundSettlementVerifier` is the built-in example:
+
+```python
+from agent_consistency import RefundSettlementVerifier
+
+step.verify_outcome_with(
+    RefundSettlementVerifier("rf_1", provider_status),
+    criticality="financial",
+)
+```
+
+The verifier re-queries provider status and fails unless the source of truth
+reports `settled`.
+
 ## Receipt Stores
 
-The package ships two stores:
+The package ships these stores/exporters:
 
 - `InMemoryReceiptStore`: useful in tests, demos, and short-lived workflows.
 - `JsonlReceiptStore`: writes one JSON receipt per line and creates parent
   directories automatically.
+- `BufferedReceiptStore`: buffers writes and flushes to a backing store on
+  demand or when failed receipts need to be preserved immediately.
+- `PostgresReceiptStore`: optional DB-API backend for PostgreSQL connections
+  (`agent-consistency[postgres]`).
+- `OtelReceiptExporter`: optional OpenTelemetry span exporter
+  (`agent-consistency[otel]`).
 
-Both stores deduplicate receipt keys by `run_id:step_id` by default. JSONL
-receipts include a digest chain when they are written through the store, so
-`agent-consistency verify` can detect edits and reordering.
+The in-memory and JSONL stores deduplicate receipt keys by `run_id:step_id` by
+default. JSONL receipts include a digest chain when they are written through the
+store, so `agent-consistency verify` can detect edits and reordering.
+
+Side-effecting steps can also declare an idempotency key. A repeated key in the
+same run records a failed receipt and refuses the second fire.
 
 For production retention, rotate and archive JSONL files with your existing log
 or artifact pipeline. Keep receipt files out of `.env` and secret-bearing paths;
@@ -63,6 +104,10 @@ If a provider check is slow or flaky, decide at the workflow level whether the
 safe behavior is to block, retry, ask for human approval, or continue in a
 non-blocking rollout mode.
 
+The repository includes a skippable performance smoke test that runs 1,000
+state freshness checks under a generous one-second ceiling on the local
+deterministic path.
+
 ## CLI Checks
 
 Use the CLI in CI or incident review:
@@ -75,4 +120,3 @@ agent-consistency verify runs/demo-pending-refund/receipts.jsonl
 
 `detect` reports false-success risk from declared receipts. It cannot infer
 claims or outcomes your workflow did not record.
-

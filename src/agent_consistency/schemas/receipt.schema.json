@@ -77,6 +77,14 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "idempotency_key": {
+      "type": ["string", "null"],
+      "description": "Caller-provided key used to prevent double-firing a side-effecting step."
+    },
+    "policy_decisions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/policy_decision" }
+    },
     "metadata": {
       "type": "object",
       "additionalProperties": true
@@ -159,6 +167,16 @@
         "severity": { "type": "string" },
         "details": { "type": "object", "additionalProperties": true },
         "created_at": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "policy_decision": {
+      "type": "object",
+      "required": ["criticality", "mode", "reason"],
+      "properties": {
+        "criticality": { "type": "string" },
+        "mode": { "type": "string", "enum": ["fail_open", "fail_closed"] },
+        "reason": { "type": "string" }
       },
       "additionalProperties": true
     },

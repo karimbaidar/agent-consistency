@@ -66,6 +66,13 @@ docs = [
   "mkdocs-material>=9.5",
   "mkdocstrings[python]>=0.25",
 ]
+otel = [
+  "opentelemetry-api>=1.25",
+]
+postgres = [
+  "psycopg[binary]>=3.2",
+]
+microsoft = []
 
 
 [tool.setuptools.packages.find]
@@ -77,6 +84,9 @@ agent_consistency = ["schemas/*.json"]
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]
+markers = [
+  "performance: smoke tests with generous timing thresholds",
+]
 
 [tool.ruff]
 line-length = 100

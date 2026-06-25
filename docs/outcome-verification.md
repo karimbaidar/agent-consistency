@@ -37,6 +37,27 @@ the workflow raises before downstream continuation. In `record` mode, the
 receipt records the failed gate without raising, which is useful for demos and
 analysis.
 
+## Ground-Truth Verifier
+
+For refund workflows, use the built-in provider-status verifier:
+
+```python
+from agent_consistency import RefundSettlementVerifier, WorkflowRun
+
+provider_status = lambda refund_id: {"refund_id": refund_id, "status": "pending"}
+
+run = WorkflowRun("refund-ord-1")
+with run.step("refund-agent", "issue_refund", step_id="refund") as step:
+    step.verify_outcome_with(
+        RefundSettlementVerifier("rf_1", provider_status),
+        criticality="financial",
+    )
+```
+
+The verifier re-queries the provider-facing source of truth. If the provider
+times out or returns a non-settled status, the failure resolves through the
+step's fail-open / fail-closed policy and is recorded in the receipt.
+
 ## What To Verify
 
 Verify outcomes that make customer-visible or business-visible claims true:

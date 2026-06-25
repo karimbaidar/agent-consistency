@@ -24,7 +24,13 @@ from .models import (
     StateDelta,
     StateSnapshot,
 )
-from .outcome import OutcomeVerifier, verify_outcome
+from .outcome import (
+    OutcomeVerifier,
+    OutcomeVerifierProtocol,
+    RefundSettlementVerifier,
+    verify_outcome,
+)
+from .policy import FailurePolicy, PolicyDecision
 from .receipt_verification import (
     ReceiptVerificationReport,
     VerificationIssue,
@@ -38,7 +44,15 @@ from .reporting import (
     write_html_summary,
 )
 from .run import AgentStep, WorkflowRun
-from .store import InMemoryReceiptStore, JsonlReceiptStore, ReceiptStore, load_receipts
+from .store import (
+    BufferedReceiptStore,
+    InMemoryReceiptStore,
+    JsonlReceiptStore,
+    OtelReceiptExporter,
+    PostgresReceiptStore,
+    ReceiptStore,
+    load_receipts,
+)
 from .verifier import (
     VerificationContext,
     VerifierRegistry,
@@ -51,6 +65,7 @@ __version__ = "0.3.0"
 
 __all__ = [
     "AgentStep",
+    "BufferedReceiptStore",
     "CausalityGraph",
     "ConsistencyError",
     "ConsistencyIssue",
@@ -66,11 +81,17 @@ __all__ = [
     "OutcomeResult",
     "OutcomeVerificationError",
     "OutcomeVerifier",
+    "OutcomeVerifierProtocol",
+    "FailurePolicy",
+    "OtelReceiptExporter",
     "ProofArtifact",
+    "PolicyDecision",
+    "PostgresReceiptStore",
     "ReceiptStore",
     "ReceiptVerificationReport",
     "RiskFinding",
     "RiskReport",
+    "RefundSettlementVerifier",
     "detect_receipt_file",
     "detect_risks",
     "render_text_summary",

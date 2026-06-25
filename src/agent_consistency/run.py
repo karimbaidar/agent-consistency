@@ -14,7 +14,8 @@ from .models import (
     StateDelta,
     StateSnapshot,
 )
-from .outcome import OutcomeCheck, OutcomeVerifier
+from .outcome import OutcomeCheck, OutcomeVerifier, OutcomeVerifierProtocol
+from .policy import DEFAULT_FAILURE_POLICY, FailurePolicy
 from .store import InMemoryReceiptStore, ReceiptStore
 from .verifier import VerificationContext, VerifierRegistry
 
@@ -28,6 +29,7 @@ class WorkflowRun:
         *,
         store: Optional[ReceiptStore] = None,
         on_violation: str = "raise",
+        failure_policy: Optional[FailurePolicy] = None,
     ) -> None:
         if on_violation not in {"raise", "warn", "record", "report", "detect"}:
             raise ValueError(
@@ -36,6 +38,8 @@ class WorkflowRun:
         self.run_id = run_id or str(uuid.uuid4())
         self.store = store or InMemoryReceiptStore()
         self.on_violation = on_violation
+        self.failure_policy = failure_policy or DEFAULT_FAILURE_POLICY
+        self._idempotency_keys: set[str] = set()
 
     @classmethod
     def detect(
@@ -54,6 +58,8 @@ class WorkflowRun:
         *,
         step_id: Optional[str] = None,
         assumptions: Optional[Iterable[str]] = None,
+        criticality: str = "high",
+        idempotency_key: Optional[str] = None,
         metadata: Optional[Mapping[str, Any]] = None,
     ) -> "AgentStep":
         return AgentStep(
@@ -62,6 +68,8 @@ class WorkflowRun:
             action=action,
             step_id=step_id,
             assumptions=assumptions,
+            criticality=criticality,
+            idempotency_key=idempotency_key,
             metadata=metadata,
         )
 
@@ -70,6 +78,11 @@ class WorkflowRun:
 
     def _record(self, receipt: ConsistencyReceipt) -> None:
         self.store.add(receipt)
+
+    def flush(self) -> None:
+        flush = getattr(self.store, "flush", None)
+        if callable(flush):
+            flush()
 
 
 class AgentStep:
@@ -81,24 +94,51 @@ class AgentStep:
         action: str,
         step_id: Optional[str] = None,
         assumptions: Optional[Iterable[str]] = None,
+        criticality: str = "high",
+        idempotency_key: Optional[str] = None,
         metadata: Optional[Mapping[str, Any]] = None,
     ) -> None:
         self.run = run
+        self.criticality = criticality
+        self._duplicate_idempotency_key = (
+            idempotency_key is not None and idempotency_key in run._idempotency_keys
+        )
+        if idempotency_key is not None and not self._duplicate_idempotency_key:
+            run._idempotency_keys.add(idempotency_key)
         self.receipt = ConsistencyReceipt(
             run_id=run.run_id,
             step_id=step_id or f"{agent}:{action}:{uuid.uuid4().hex[:8]}",
             agent=agent,
             action=action,
             assumptions=list(assumptions or []),
+            idempotency_key=idempotency_key,
             metadata=dict(metadata or {}),
         )
+        self.receipt.metadata.setdefault("criticality", criticality)
 
     def __enter__(self) -> "AgentStep":
+        if self._duplicate_idempotency_key:
+            try:
+                self._handle_issue(
+                    code="duplicate_idempotency_key",
+                    message=f"idempotency key already used: {self.receipt.idempotency_key}",
+                    details={"idempotency_key": self.receipt.idempotency_key},
+                    exception_factory=lambda text: OutcomeVerificationError(text),
+                    criticality="financial",
+                )
+                raise OutcomeVerificationError(
+                    f"idempotency key already used: {self.receipt.idempotency_key}"
+                )
+            finally:
+                self.receipt.finish()
+                self.run._record(self.receipt)
         return self
 
     def __exit__(self, exc_type: Any, exc: Optional[BaseException], tb: Any) -> Literal[False]:
         self.receipt.finish(error=exc)
         self.run._record(self.receipt)
+        if exc is not None or self.receipt.status == "failed":
+            self.run.flush()
         return False
 
     def read_state(
@@ -387,6 +427,7 @@ class AgentStep:
         success_reason: str = "postcondition passed",
         failure_reason: str = "postcondition failed",
         details: Optional[Dict[str, Any]] = None,
+        criticality: Optional[str] = None,
     ) -> OutcomeResult:
         result = OutcomeVerifier(
             name,
@@ -402,6 +443,36 @@ class AgentStep:
                 message=f"outcome '{name}' failed: {result.reason}",
                 details=result.to_dict(),
                 exception_factory=lambda text: OutcomeVerificationError(text, result=result),
+                criticality=criticality,
+            )
+        return result
+
+    def verify_outcome_with(
+        self,
+        verifier: OutcomeVerifierProtocol,
+        *,
+        criticality: Optional[str] = None,
+    ) -> OutcomeResult:
+        verifier_error: Optional[BaseException] = None
+        try:
+            result = verifier.run()
+        except Exception as exc:
+            verifier_error = exc
+            result = OutcomeResult(
+                name=verifier.name,
+                passed=False,
+                reason=f"outcome verifier error: {exc.__class__.__name__}: {exc}",
+                details={"error_type": exc.__class__.__name__, "error": str(exc)},
+            )
+        self.receipt.outcomes.append(result)
+        if not result.passed:
+            self._handle_issue(
+                code="outcome_failed",
+                message=f"outcome '{result.name}' failed: {result.reason}",
+                details=result.to_dict(),
+                exception_factory=lambda text: OutcomeVerificationError(text, result=result),
+                criticality=criticality,
+                error=verifier_error,
             )
         return result
 
@@ -441,15 +512,29 @@ class AgentStep:
         message: str,
         details: Mapping[str, Any],
         exception_factory: Callable[[str], BaseException],
+        criticality: Optional[str] = None,
+        error: Optional[BaseException] = None,
     ) -> None:
+        decision = self.run.failure_policy.resolve(
+            criticality or self.criticality,
+            reason=message,
+            error=error,
+        )
+        self.receipt.policy_decisions.append(decision.to_dict())
         issue = ConsistencyIssue(
             code=code,
             message=message,
-            severity="warning" if self.run.on_violation == "warn" else "error",
-            details=dict(details),
+            severity=(
+                "warning"
+                if self.run.on_violation == "warn" or decision.mode == "fail_open"
+                else "error"
+            ),
+            details={**dict(details), "policy": decision.to_dict()},
         )
         self.receipt.issues.append(issue)
-        if self.run.on_violation == "warn":
+        if decision.mode == "fail_closed":
+            self.run.flush()
+        if self.run.on_violation == "warn" or decision.mode == "fail_open":
             warnings.warn(message, RuntimeWarning, stacklevel=3)
             return
         if self.run.on_violation in {"record", "report", "detect"}:

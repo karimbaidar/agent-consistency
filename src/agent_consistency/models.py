@@ -255,6 +255,8 @@ class ConsistencyReceipt:
     consumed_handoff_ids: List[str] = field(default_factory=list)
     produced_handoff_ids: List[str] = field(default_factory=list)
     consumed_artifact_ids: List[str] = field(default_factory=list)
+    idempotency_key: Optional[str] = None
+    policy_decisions: List[Dict[str, Any]] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
     status: str = "running"
     error: Optional[Dict[str, Any]] = None
@@ -303,6 +305,8 @@ class ConsistencyReceipt:
             "consumed_handoff_ids": list(self.consumed_handoff_ids),
             "produced_handoff_ids": list(self.produced_handoff_ids),
             "consumed_artifact_ids": list(self.consumed_artifact_ids),
+            "idempotency_key": self.idempotency_key,
+            "policy_decisions": to_jsonable(self.policy_decisions),
             "metadata": to_jsonable(self.metadata),
             "status": self.status,
             "error": to_jsonable(self.error),
@@ -342,6 +346,8 @@ class ConsistencyReceipt:
             consumed_handoff_ids=list(payload.get("consumed_handoff_ids") or []),
             produced_handoff_ids=list(payload.get("produced_handoff_ids") or []),
             consumed_artifact_ids=list(payload.get("consumed_artifact_ids") or []),
+            idempotency_key=payload.get("idempotency_key"),
+            policy_decisions=list(payload.get("policy_decisions") or []),
             metadata=dict(payload.get("metadata") or {}),
             status=str(payload.get("status") or "running"),
             error=payload.get("error"),

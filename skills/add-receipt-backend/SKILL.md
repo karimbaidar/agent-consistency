@@ -30,4 +30,5 @@ Use this when adding or changing receipt storage/export backends.
 
 - Receipt writes should be bufferable and flushable so blocking gate decisions
   can preserve evidence without making every hot-path step wait on remote I/O.
-
+- Exporters such as OpenTelemetry are not durable receipt stores; keep list/read
+  behavior separate from write/export behavior.
