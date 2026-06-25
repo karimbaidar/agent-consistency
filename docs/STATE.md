@@ -1,7 +1,7 @@
 # Build State
 
 ## Current phase
-Phase 5 — Positioning, docs & compliance framing
+Complete — all phased build prompt work shipped through Phase 5.
 
 ## Roadmap
 - [x] Phase 0 — Foundation & context scaffolding
@@ -9,7 +9,7 @@ Phase 5 — Positioning, docs & compliance framing
 - [x] Phase 2 — Framework-agnostic API + OpenTelemetry
 - [x] Phase 3 — Microsoft Agent Framework adapter + instrument-your-own-agent
 - [x] Phase 4 — False-success benchmark + leaderboard
-- [ ] Phase 5 — Positioning, docs & compliance framing
+- [x] Phase 5 — Positioning, docs & compliance framing
 
 ## Done
 - Existing baseline includes receipt recording, state freshness checks, handoff
@@ -32,6 +32,9 @@ Phase 5 — Positioning, docs & compliance framing
 - Phase 4 added six deterministic benchmark scenarios, a raw-vs-protected
   harness, generated `benchmark/results.md`, `LEADERBOARD.md`, benchmark docs,
   and tests. Generated headline: raw caught 0/6; agent-consistency caught 6/6.
+- Phase 5 completed README positioning around false-success bugs, the
+  irreversible-action safety interlock, benchmark headline, production rollout
+  guidance, compliance framing, and docs drift checks.
 
 ## Decisions
 - Keep the core dependency-free; optional integrations must live behind extras.
@@ -47,6 +50,10 @@ Phase 5 — Positioning, docs & compliance framing
   the base install.
 - Benchmark results are scenario-suite results only; they should not be framed
   as universal reliability guarantees.
+- The README intentionally keeps only the architecture placeholder image until
+  the human supplies the final architecture asset.
+- The pending-refund banner remains future collateral; do not add a generated
+  banner image without human approval.
 
 ## Gotchas
 - GitHub Pages deploy remains gated by `DEPLOY_GITHUB_PAGES` because the repo
@@ -59,7 +66,10 @@ Phase 5 — Positioning, docs & compliance framing
   when validating this copied checkout directly.
 
 ## Next
-- Implement Phase 5 final positioning, docs drift check, and README polish.
+- Maintain benchmark/docs sync on future changes.
+- Future, not now: deeper native framework packages, hosted community
+  leaderboard automation, signed receipts, richer graph visualization, and
+  legal-review-specific compliance templates.
 
 ## Open questions for the human
 - None.

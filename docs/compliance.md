@@ -50,6 +50,20 @@ If your process needs human approval, model governance review, retention rules,
 or regulator-specific controls, implement those controls around the workflow and
 record the relevant evidence in receipts.
 
+## Human Approval Gate
+
+A human approval gate is an oversight control owned by the workflow, not magic
+inside the package. `agent-consistency` can record that the gate happened by
+capturing required handoff facts such as `approved_by`, attaching a verified
+approval artifact, and blocking the downstream action when those facts or
+artifacts are missing.
+
+The `examples/approval_gate.py` example shows this pattern with a handoff
+contract and verified approval artifact. In a regulated workflow, the same
+receipt trail can map onto human oversight and record-keeping obligations, but
+the surrounding approval policy, retention policy, and reviewer authority still
+belong to the deployer.
+
 ## EU AI Act Style Language
 
 Use careful wording. Receipts can map onto record-keeping, transparency, and
@@ -64,4 +78,3 @@ Good wording:
 Avoid wording:
 
 > This makes the agent compliant.
-

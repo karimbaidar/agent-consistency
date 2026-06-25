@@ -1,34 +1,33 @@
 # Roadmap
 
-## v0.4: Verifiable Receipts
+The phased build prompt is complete through Phase 5. This page records what is
+shipped now and what remains future work, not a dated release promise.
 
-- digest-chained JSONL receipts
-- `agent-consistency verify`
-- receipt JSON Schema
+## Completed Phases
 
-## v0.5: Graph Export
+- Phase 0: project context scaffolding, repo-local skills, Claude settings,
+  commit hygiene, secret checks, and CI wiring.
+- Phase 1: fail-open/fail-closed policy decisions, step criticality,
+  idempotency keys, outcome verifiers, buffered receipts, Postgres storage, and
+  OpenTelemetry export support.
+- Phase 2: framework-agnostic `reliability_gate(...)`, `verified_step(...)`,
+  `GateDecision`, optional OTel span emission, and public API docs.
+- Phase 3: dependency-light Microsoft Agent Framework-shaped adapter plus the
+  instrument-your-own-agent example path.
+- Phase 4: deterministic false-success benchmark, generated results, and
+  leaderboard submission format.
+- Phase 5: launch positioning, README benchmark framing, production notes,
+  compliance framing, and docs drift cleanup.
 
-- richer graph export for receipt chains
-- better visual inspection of parent receipts, handoffs, and artifacts
-- publish the MkDocs site when GitHub Pages is available for the repository
+## Future, Not Now
 
-## v0.6: LangGraph Adapter
+- Deeper native framework packages that depend on real LangGraph, CrewAI,
+  AutoGen, Azure Durable, or Microsoft Agent Framework runtimes.
+- Hosted community leaderboard automation and submission validation.
+- Signed receipts behind an optional crypto extra.
+- Richer graph visualization for receipt chains and handoffs.
+- Legal-review-specific compliance templates maintained with counsel.
 
-- stable LangGraph node wrapping API
-- examples and tests that can run without adding LangGraph to core
-
-## v0.7: RAG Evidence Spans
-
-- explicit evidence spans for retrieved documents
-- supported-claim checks against retrieval evidence
-
-## v0.8: OpenTelemetry Export
-
-- export receipt events into tracing systems
-- keep receipts as the authoritative portable artifact
-
-## v1.0: Stable Receipt Schema
-
-- stable schema versioning policy
-- compatibility tests for old receipts
-- signed receipts behind an optional crypto extra
+Benchmark results remain scenario-suite results only. They should stay synced
+with `benchmark/results.md` and should not be described as universal reliability
+guarantees.

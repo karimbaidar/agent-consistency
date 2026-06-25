@@ -9,9 +9,10 @@
 
 Tool success is not business success.
 
-`agent-consistency` is a zero-dependency Python reliability layer for AI agent
-workflows. It catches false-success bugs: cases where a tool call returns
-success, but the real-world business outcome is still false.
+`agent-consistency` is a zero-dependency Python safety interlock for AI agent
+workflows that take irreversible or customer-visible actions. It catches
+false-success bugs: cases where a tool call returns success, but the real-world
+business outcome is still false.
 
 > A refund API returns `200 OK`. The provider status is still `pending`. The
 > agent is about to email "your refund is complete." `agent-consistency` blocks
@@ -20,12 +21,13 @@ success, but the real-world business outcome is still false.
 Traces show what happened. Evals score what was said. `agent-consistency`
 decides whether the workflow was allowed to continue.
 
-[Live demo: watch a false-success bug get blocked](https://karimbaidar.github.io/agent-consistency-refund-demo/) | [Docs source](docs/index.md) | [Quickstart](docs/quickstart.md)
+[Live demo: watch a false-success bug get blocked](https://karimbaidar.github.io/agent-consistency-refund-demo/) | [Quickstart](docs/quickstart.md) | [Benchmark](docs/benchmark.md) | [Production](docs/production.md) | [Compliance](docs/compliance.md)
 
 Benchmark: **raw caught 0/6; agent-consistency caught 6/6** on the deterministic
-false-success suite in `benchmark/`.
+false-success suite in `benchmark/`. This is a reproducible scenario-suite
+result, not a universal reliability guarantee.
 
-## Architecture Placeholder
+## Architecture Image Placeholder
 
 ![Architecture placeholder - final diagram will be supplied later](assets/architecture-placeholder.svg)
 
@@ -165,6 +167,8 @@ world.
 
 - [Quickstart](docs/quickstart.md)
 - [Detect mode](docs/detect-mode.md)
+- [Benchmark](docs/benchmark.md)
+- [Leaderboard](LEADERBOARD.md)
 - [Receipts and verification](docs/receipts.md)
 - [Outcome verification](docs/outcome-verification.md)
 - [Production notes](docs/production.md)

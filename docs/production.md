@@ -87,8 +87,10 @@ Side-effecting steps can also declare an idempotency key. A repeated key in the
 same run records a failed receipt and refuses the second fire.
 
 For production retention, rotate and archive JSONL files with your existing log
-or artifact pipeline. Keep receipt files out of `.env` and secret-bearing paths;
-receipts may include state digests, metadata, and optional included values.
+or artifact pipeline. Use the optional Postgres store when retention, querying,
+or central access control matter more than plain-file portability. Keep receipt
+files out of `.env` and secret-bearing paths; receipts may include state
+digests, metadata, and optional included values.
 
 ## Hot Path Guidance
 
@@ -104,9 +106,13 @@ If a provider check is slow or flaky, decide at the workflow level whether the
 safe behavior is to block, retry, ask for human approval, or continue in a
 non-blocking rollout mode.
 
-The repository includes a skippable performance smoke test that runs 1,000
-state freshness checks under a generous one-second ceiling on the local
-deterministic path.
+## Overhead
+
+The repository includes a skippable performance smoke test that asserts 1,000
+state freshness checks complete under one second on the local deterministic
+path. Treat that as a regression guard for the synchronous core path, not a
+throughput guarantee for provider calls, networked stores, database retention,
+or tracing exporters.
 
 ## CLI Checks
 
