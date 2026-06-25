@@ -1,31 +1,45 @@
 # agent-consistency
 
-[Live demo: watch a false-success bug get blocked](https://karimbaidar.github.io/agent-consistency-refund-demo/)
-
-Evidence receipts for AI agent workflows.
-
-[Docs source](docs/index.md)
-
-> Your refund agent called the payment API. The API returned 200 OK. The provider status was still `pending`. The agent was about to email "your refund is complete." `agent-consistency` blocks the message and records why.
-
-Traces show what happened. Evals score what was said. `agent-consistency` decides whether the workflow was allowed to continue.
-
 [![PyPI](https://img.shields.io/pypi/v/agent-consistency.svg)](https://pypi.org/project/agent-consistency/)
 [![Python](https://img.shields.io/pypi/pyversions/agent-consistency.svg)](https://pypi.org/project/agent-consistency/)
-[![CI](https://img.shields.io/badge/CI-ready-177245)](https://github.com/karimbaidar/agent-consistency/actions)
+[![tests](https://github.com/karimbaidar/agent-consistency/actions/workflows/tests.yml/badge.svg)](https://github.com/karimbaidar/agent-consistency/actions/workflows/tests.yml)
+[![docs](https://github.com/karimbaidar/agent-consistency/actions/workflows/docs.yml/badge.svg)](https://github.com/karimbaidar/agent-consistency/actions/workflows/docs.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-![Zero dependencies](https://img.shields.io/badge/core-zero_dependencies-126b68)
+![core zero dependencies](https://img.shields.io/badge/core-zero_dependencies-126b68)
 
-![Demo preview - replace with real capture](assets/hero-gif-placeholder.svg)
+Tool success is not business success.
+
+`agent-consistency` is a zero-dependency Python reliability layer for AI agent
+workflows. It catches false-success bugs: cases where a tool call returns
+success, but the real-world business outcome is still false.
+
+> A refund API returns `200 OK`. The provider status is still `pending`. The
+> agent is about to email "your refund is complete." `agent-consistency` blocks
+> the message and records why.
+
+Traces show what happened. Evals score what was said. `agent-consistency`
+decides whether the workflow was allowed to continue.
+
+[Live demo: watch a false-success bug get blocked](https://karimbaidar.github.io/agent-consistency-refund-demo/) | [Docs source](docs/index.md) | [Quickstart](docs/quickstart.md)
+
+## Architecture Placeholder
+
+![Architecture placeholder - final diagram will be supplied later](assets/architecture-placeholder.svg)
+
+## Install
+
+```bash
+python -m pip install agent-consistency
+```
 
 ## The False-Success Bug
 
 A false-success bug happens when an agent reports completion before the real
 world agrees.
 
-Common sub-types:
+Common forms:
 
-- **Tool success without outcome success:** a refund call returns 200 OK, but
+- **Tool success without outcome success:** a refund call returns `200 OK`, but
   provider status is still `pending`.
 - **Stale-state success:** an approval is made from policy v12 while v14 is
   current.
@@ -36,22 +50,33 @@ Common sub-types:
 
 Output validation checks response shape. Tracing records the path taken.
 Neither blocks the next workflow step when the business outcome is still false.
-That is how a customer gets told money was returned before the provider settled
-the refund.
 
-## See It Catch A Lie In 10 Seconds
+## Add One Outcome Gate
 
-[Open the live demo](https://karimbaidar.github.io/agent-consistency-refund-demo/)
-and run **Pending refund**. The naive flow sends the completed-refund message.
-The protected flow blocks it.
+```python
+from agent_consistency import WorkflowRun
 
-![Before and after workflow image - replace with real capture](assets/before-after-placeholder.svg)
+run = WorkflowRun("refund-ord-1", on_violation="record")
 
-```bash
-python -m pip install agent-consistency
+with run.step("refund-agent", "issue_refund", step_id="refund") as step:
+    provider_result = {"refund_id": "rf_1", "status": "pending"}
+    step.write_state("refund", provider_result, include_value=True)
+    step.verify_outcome(
+        "refund_settled",
+        lambda: provider_result["status"] == "settled",
+        failure_reason="refund provider did not confirm settlement",
+        details=provider_result,
+    )
+
+receipt = run.receipts()[-1]
+print(receipt.status)             # failed
+print(receipt.issues[0].message)  # outcome 'refund_settled' failed...
 ```
 
-## Find False-Success Risk In One Line
+The tool returned. The receipt says the outcome failed. In the default blocking
+mode, the same failed outcome raises before the customer message can run.
+
+## Find Risk Before Blocking
 
 Start in detect mode before you refactor a workflow around gates:
 
@@ -73,44 +98,6 @@ outcomes, and customer-visible actions after unresolved or unverified outcomes.
 It exits non-zero on high-severity risk. It cannot know what an agent claimed
 unless your workflow declares the outcomes and evidence that matter.
 
-## Minimal Outcome Gate
-
-```python
-from agent_consistency import WorkflowRun
-
-run = WorkflowRun("refund-ord-1", on_violation="record")
-
-with run.step("intake-agent", "read_ticket", step_id="intake") as step:
-    order = {"id": "ord_1", "previous_refund_count": 0, "version": "order-v3"}
-    order_snapshot = step.read_state("order", order, version=order["version"])
-    handoff = step.handoff(
-        to_agent="refund-agent",
-        task="issue refund",
-        facts={"order_id": "ord_1", "amount": 42.5, "previous_refund_count": 0},
-        evidence={"order.previous_refund_count": order_snapshot.to_dict()},
-        required_facts=["order_id", "amount", "previous_refund_count"],
-        required_evidence=["order.previous_refund_count"],
-    )
-
-with run.step("refund-agent", "issue_refund", step_id="refund") as step:
-    step.consume_handoff(handoff)
-    provider_result = {"refund_id": "rf_1", "status": "pending"}
-    step.write_state("refund", provider_result, include_value=True)
-    step.verify_outcome(
-        "refund_settled",
-        lambda: provider_result["status"] == "settled",
-        failure_reason="refund provider did not confirm settlement",
-        details=provider_result,
-    )
-
-receipt = run.receipts()[-1]
-print(receipt.status)             # failed
-print(receipt.issues[0].message)  # outcome 'refund_settled' failed...
-```
-
-The tool returned. The receipt says the outcome failed. The workflow does not
-get to continue into customer messaging.
-
 ## CLI Receipts
 
 ```bash
@@ -128,19 +115,6 @@ the blocked reason.
 pending-refund run can report `Integrity: verified` and `Run status: failed as
 expected`.
 
-![Receipt timeline image - replace with real capture](assets/receipt-timeline-placeholder.svg)
-
-## Why This Is Necessary
-
-Agents are moving from chat into workflows that send emails, issue refunds,
-approve changes, update records, and trigger operations. Once an agent takes a
-side effect, "the tool call worked" is not enough. The workflow needs evidence
-that the real-world condition became true before the next step makes a claim.
-
-Without that gate, a green trace can still end in a customer-visible lie, a
-double refund, an approval against stale policy, or an incident where nobody can
-reconstruct which facts the agent relied on.
-
 ## Where It Fits
 
 | Category | What it answers | What it misses without agent-consistency |
@@ -154,18 +128,14 @@ reconstruct which facts the agent relied on.
 Keep those tools. Add receipts and gates where agents make claims about the
 world.
 
-## Roadmap
-
-- v0.5: graph export and richer receipt inspection
-- v0.6: stable framework adapter APIs
-- v1.0: stable receipt schema
-
 ## Docs
 
-- [Docs source](docs/index.md)
+- [Quickstart](docs/quickstart.md)
 - [Detect mode](docs/detect-mode.md)
 - [Receipts and verification](docs/receipts.md)
 - [Outcome verification](docs/outcome-verification.md)
+- [Production notes](docs/production.md)
+- [Compliance framing](docs/compliance.md)
 - [False-success bugs](docs/false-success.md)
 - [Why agent-consistency](docs/why-agent-consistency.md)
 

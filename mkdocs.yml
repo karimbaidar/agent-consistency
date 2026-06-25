@@ -43,6 +43,8 @@ nav:
   - Adapters: adapters.md
   - CLI: cli.md
   - Integrations: integrations.md
+  - Production Notes: production.md
+  - Compliance Framing: compliance.md
   - False-Success Bugs: false-success-bugs.md
   - Reference Notes:
       - False-Success Summary: false-success.md

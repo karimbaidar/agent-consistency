@@ -39,3 +39,5 @@ Use the live demo when you want the visual story:
 - [Verify and tamper evidence](verify-tamper-evidence.md): inspect receipt files.
 - [Bug zoo](bug-zoo.md): five concrete false-success examples.
 - [Adapters](adapters.md): LangGraph, CrewAI, and AutoGen-style wrappers.
+- [Production notes](production.md): rollout modes, receipt stores, and hot path guidance.
+- [Compliance framing](compliance.md): how receipts map onto evidence and oversight needs.
