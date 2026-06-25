@@ -1,3 +1,4 @@
+from .api import GateDecision, ReliabilityGate, reliability_gate, verified_step
 from .causality import CausalityGraph, build_causality_graph, trace_causality
 from .contracts import HandoffContract
 from .detect import (
@@ -83,10 +84,12 @@ __all__ = [
     "OutcomeVerifier",
     "OutcomeVerifierProtocol",
     "FailurePolicy",
+    "GateDecision",
     "OtelReceiptExporter",
     "ProofArtifact",
     "PolicyDecision",
     "PostgresReceiptStore",
+    "ReliabilityGate",
     "ReceiptStore",
     "ReceiptVerificationReport",
     "RiskFinding",
@@ -111,9 +114,11 @@ __all__ = [
     "choose_verifier",
     "diff_runs",
     "load_receipts",
+    "reliability_gate",
     "summarize_report",
     "trace_causality",
     "verify_receipt_file",
     "verify_outcome",
+    "verified_step",
     "write_html_summary",
 ]

@@ -98,6 +98,36 @@ outcomes, and customer-visible actions after unresolved or unverified outcomes.
 It exits non-zero on high-severity risk. It cannot know what an agent claimed
 unless your workflow declares the outcomes and evidence that matter.
 
+## Instrument Any Step
+
+Use `verified_step` when you want to wrap an existing callable without changing
+frameworks:
+
+```python
+from agent_consistency import RefundSettlementVerifier, WorkflowRun, verified_step
+
+run = WorkflowRun("refund-ord-1")
+provider_status = lambda refund_id: {"refund_id": refund_id, "status": "settled"}
+
+@verified_step(
+    run,
+    "refund-agent",
+    "issue_refund",
+    criticality="financial",
+    idempotency_key="refund:ord_1",
+    outcome_verifier=lambda refund: RefundSettlementVerifier(
+        refund["refund_id"],
+        provider_status,
+    ),
+)
+def issue_refund():
+    return {"refund_id": "rf_1"}
+```
+
+Use `reliability_gate` as a context manager when you need direct access to the
+receipt-backed step. If `agent-consistency[otel]` is installed, the API emits
+standard `gen_ai.*` and `agent_consistency.*` span attributes.
+
 ## CLI Receipts
 
 ```bash

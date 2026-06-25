@@ -53,8 +53,11 @@ model as its own judge.
 
 ## OpenTelemetry Mapping
 
-OpenTelemetry support is optional. When installed, the API emits spans with
-standard `gen_ai.*` attributes plus `agent_consistency.*` receipt attributes:
+OpenTelemetry support is optional. `reliability_gate(...)` uses an injected
+tracer when supplied, otherwise it imports OpenTelemetry lazily. If OTel is not
+installed, the gate still works and emits no spans. When enabled, the API emits
+spans with standard `gen_ai.*` attributes plus `agent_consistency.*` receipt
+attributes:
 
 - `gen_ai.operation.name`
 - `gen_ai.system`
@@ -76,4 +79,3 @@ The core package works without OTel installed.
 - Receipt writes can be buffered and flushed at blocking decisions.
 - Required dependencies stay at zero for the core package.
 - Optional integrations stay behind extras.
-
