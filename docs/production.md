@@ -92,6 +92,10 @@ or central access control matter more than plain-file portability. Keep receipt
 files out of `.env` and secret-bearing paths; receipts may include state
 digests, metadata, and optional included values.
 
+OpenTelemetry is an export path, not the durable receipt source of truth. Use
+JSONL or Postgres when you need to reload receipts for verification, detection,
+audits, or incident review.
+
 ## Hot Path Guidance
 
 Contract checks are synchronous because they guard the next workflow step. Keep

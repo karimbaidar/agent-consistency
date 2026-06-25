@@ -39,6 +39,7 @@ Use the live demo when you want the visual story:
 - [Verify and tamper evidence](verify-tamper-evidence.md): inspect receipt files.
 - [Bug zoo](bug-zoo.md): five concrete false-success examples.
 - [Benchmark](benchmark.md): deterministic false-success catch-rate suite.
+- [Diagram-to-receipt map](diagram-receipt-map.md): map the architecture image labels to real receipt JSON.
 - [Adapters](adapters.md): Microsoft Agent Framework, LangGraph, CrewAI, and AutoGen-style wrappers.
 - [Production notes](production.md): rollout modes, receipt stores, and hot path guidance.
 - [Compliance framing](compliance.md): how receipts map onto evidence and oversight needs.

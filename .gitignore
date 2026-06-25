@@ -34,5 +34,7 @@ runs/
 *.jsonl
 !tests/fixtures/**/*.jsonl
 !benchmark/**/*.jsonl
+!docs/samples/
+!docs/samples/*.jsonl
 benchmark/results.local.md
 *.log

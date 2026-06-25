@@ -27,9 +27,14 @@ Benchmark: **raw caught 0/6; agent-consistency caught 6/6** on the deterministic
 false-success suite in `benchmark/`. This is a reproducible scenario-suite
 result, not a universal reliability guarantee.
 
-## Architecture Image Placeholder
+## Architecture
 
-![Architecture placeholder - final diagram will be supplied later](assets/architecture-placeholder.svg)
+![agent-consistency architecture](assets/architecture.png)
+
+The image uses compact labels such as `state_ok=true` and `outcome_ok=true` for
+readability. Stored receipts use structured JSON fields. See the
+[diagram-to-receipt map](docs/diagram-receipt-map.md) and the generated
+[pending-refund receipt sample](docs/samples/pending-refund-receipts.jsonl).
 
 ## Install
 
@@ -169,6 +174,7 @@ world.
 - [Detect mode](docs/detect-mode.md)
 - [Benchmark](docs/benchmark.md)
 - [Leaderboard](LEADERBOARD.md)
+- [Diagram-to-receipt map](docs/diagram-receipt-map.md)
 - [Receipts and verification](docs/receipts.md)
 - [Outcome verification](docs/outcome-verification.md)
 - [Production notes](docs/production.md)

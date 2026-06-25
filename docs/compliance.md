@@ -22,6 +22,10 @@ A receipt can show:
 That evidence can support incident review, audit preparation, model risk
 management, and human oversight workflows.
 
+The JSONL chain is tamper-evident through receipt digests. It is not signed and
+is not tamper-proof. Use trusted storage, access control, and future signing
+work if your compliance process needs authorship or non-repudiation guarantees.
+
 ## What Receipts Do Not Prove
 
 Receipts are not a formal proof of global correctness. They do not prove that:

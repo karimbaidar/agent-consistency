@@ -41,6 +41,7 @@ nav:
   - Verify and Tamper Evidence: verify-tamper-evidence.md
   - Bug Zoo: bug-zoo.md
   - Benchmark: benchmark.md
+  - Diagram To Receipt Map: diagram-receipt-map.md
   - Adapters: adapters.md
   - CLI: cli.md
   - Integrations: integrations.md

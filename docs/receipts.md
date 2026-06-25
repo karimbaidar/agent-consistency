@@ -23,6 +23,11 @@ the `receipt_digest` field excluded. `previous_receipt_digest` commits each
 receipt to the receipt before it in the JSONL file. Editing a receipt or
 reordering receipts changes the verification result.
 
+This is hash-chained tamper evidence, not a cryptographic signature. It detects
+edits and reordering against the stored chain; it does not prove authorship or
+stop someone with write access from replacing the entire file and recomputing a
+new chain. Signed receipts remain future work.
+
 The canonical JSON implementation uses the package's existing `stable_json` and
 `stable_digest` helpers.
 
@@ -55,9 +60,12 @@ Result: OK
 
 ## Sample: Pending Refund
 
+The tracked sample file is
+`docs/samples/pending-refund-receipts.jsonl`.
+
 ```text
-Receipt verification: runs/demo-pending-refund/receipts.jsonl
-Receipts: 4
+Receipt verification: docs/samples/pending-refund-receipts.jsonl
+Receipts: 1
 Integrity: verified
 Run status: failed as expected - 1 blocked receipt(s)
 Structural checks: passed

@@ -35,6 +35,8 @@ Complete — all phased build prompt work shipped through Phase 5.
 - Phase 5 completed README positioning around false-success bugs, the
   irreversible-action safety interlock, benchmark headline, production rollout
   guidance, compliance framing, and docs drift checks.
+- Post-Phase 5 alignment added the supplied architecture image, a generated
+  pending-refund receipt sample, and a diagram-to-receipt field map.
 
 ## Decisions
 - Keep the core dependency-free; optional integrations must live behind extras.
@@ -50,8 +52,10 @@ Complete — all phased build prompt work shipped through Phase 5.
   the base install.
 - Benchmark results are scenario-suite results only; they should not be framed
   as universal reliability guarantees.
-- The README intentionally keeps only the architecture placeholder image until
-  the human supplies the final architecture asset.
+- The README uses the human-supplied architecture image at
+  `assets/architecture.png`.
+- The architecture image uses compact presentation labels; the source of truth
+  remains the structured receipt JSON documented in `docs/diagram-receipt-map.md`.
 - The pending-refund banner remains future collateral; do not add a generated
   banner image without human approval.
 
@@ -62,6 +66,7 @@ Complete — all phased build prompt work shipped through Phase 5.
   `benchmark/results.md`.
 - `OtelReceiptExporter` is export-only; it intentionally returns an empty list
   because spans are not a receipt source of truth.
+- Tamper evidence is hash-chain integrity, not signing or tamper-proof storage.
 - The local sandbox can pick up an older editable install; use `PYTHONPATH=src`
   when validating this copied checkout directly.
 
