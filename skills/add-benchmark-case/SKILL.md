@@ -32,4 +32,5 @@ Use this when adding a deterministic false-success benchmark scenario.
 ## Gotchas learned
 
 - The benchmark proves declared scenarios, not all possible agent failures.
-
+- README claims must cite generated `benchmark/results.md` numbers, not
+  hand-written estimates.

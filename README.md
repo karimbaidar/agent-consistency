@@ -22,6 +22,9 @@ decides whether the workflow was allowed to continue.
 
 [Live demo: watch a false-success bug get blocked](https://karimbaidar.github.io/agent-consistency-refund-demo/) | [Docs source](docs/index.md) | [Quickstart](docs/quickstart.md)
 
+Benchmark: **raw caught 0/6; agent-consistency caught 6/6** on the deterministic
+false-success suite in `benchmark/`.
+
 ## Architecture Placeholder
 
 ![Architecture placeholder - final diagram will be supplied later](assets/architecture-placeholder.svg)

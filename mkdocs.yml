@@ -40,6 +40,7 @@ nav:
   - Detect Mode: detect-mode.md
   - Verify and Tamper Evidence: verify-tamper-evidence.md
   - Bug Zoo: bug-zoo.md
+  - Benchmark: benchmark.md
   - Adapters: adapters.md
   - CLI: cli.md
   - Integrations: integrations.md
