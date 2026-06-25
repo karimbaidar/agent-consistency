@@ -20,7 +20,7 @@ jobs:
       - name: Lint
         run: ruff check src tests examples benchmark
       - name: Test
-        run: pytest --cov=agent_consistency --cov-report=term-missing
+        run: python -m pytest --cov=agent_consistency --cov-report=term-missing
       - name: Secret guard
         run: scripts/check_no_secrets.sh
 

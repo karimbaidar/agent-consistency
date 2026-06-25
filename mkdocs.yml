@@ -43,6 +43,7 @@ nav:
   - Benchmark: benchmark.md
   - Diagram To Receipt Map: diagram-receipt-map.md
   - Adapters: adapters.md
+  - Microsoft Agent Framework: microsoft-agent-framework.md
   - CLI: cli.md
   - Integrations: integrations.md
   - Production Notes: production.md

@@ -28,6 +28,34 @@ Use `pass_step=True` when the node needs direct access to `read_state`,
 
 ## Microsoft Agent Framework-Shaped Agents
 
+Use the native integration for real Microsoft Agent Framework async and
+middleware seams:
+
+```python
+from agent_consistency.integrations import MicrosoftAgentFrameworkNativeIntegration
+
+integration = MicrosoftAgentFrameworkNativeIntegration(run_id="refund-maf")
+refund_agent = integration.wrap_agent_run(
+    maf_refund_agent,
+    action="issue_refund",
+    criticality="financial",
+    outcome_name="refund_settled",
+    outcome_check=lambda result: result["status"] == "settled",
+)
+
+refund = await refund_agent({"refund_id": "rf_1"})
+```
+
+Install with `agent-consistency[microsoft]` on Python 3.10+ when you want the
+real `agent-framework` package. The base install remains dependency-free.
+
+The native integration also exposes `agent_middleware(...)`,
+`function_middleware(...)`, and `wrap_agent_stream(...)`; see
+[Microsoft Agent Framework](microsoft-agent-framework.md).
+
+Use the dependency-light fallback when you cannot or do not want to install
+Microsoft packages:
+
 ```python
 from agent_consistency.integrations import MicrosoftAgentFrameworkConsistencyAdapter
 
@@ -45,9 +73,9 @@ refund_agent = adapter.wrap_agent_method(
 refund = refund_agent({"refund_id": "rf_1"})
 ```
 
-The adapter is dependency-light: it wraps MAF-shaped agent methods and callables
+The fallback adapter is dependency-light: it wraps MAF-shaped methods and callables
 without importing Microsoft Agent Framework in the base package. Install
-`agent-consistency[microsoft]` for the integration surface; the current adapter
+`agent-consistency[microsoft]` for the native integration surface; the fallback
 does not require extra runtime packages.
 
 Use `record_handoff(...)` when you want to preserve a MAF-style transfer before
@@ -133,5 +161,5 @@ models and version churn. These adapters expose the stable part: wrapping a
 callable step, attaching a receipt, and verifying the outcome that matters.
 Framework-specific sugar can grow from this interface without adding heavy
 dependencies to the base install. Additional adapters, including deeper
-LangGraph, CrewAI, AutoGen, and OpenAI Agents SDK integrations, are future work
-and should follow `skills/add-framework-adapter/SKILL.md`.
+LangGraph, CrewAI, AutoGen, Azure Durable, and OpenAI Agents SDK integrations,
+are future work and should follow `skills/add-framework-adapter/SKILL.md`.

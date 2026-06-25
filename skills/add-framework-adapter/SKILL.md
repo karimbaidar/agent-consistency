@@ -19,7 +19,8 @@ Use this when adding a new framework or orchestrator integration.
 
 ## Conventions
 
-- Adapter classes end in `ConsistencyAdapter`.
+- Adapter classes end in `ConsistencyAdapter`; native product integrations may
+  end in `NativeIntegration` when they expose real framework lifecycle seams.
 - Adapter methods should accept a user callable and return a wrapped callable.
 - Optional framework packages belong in a named extra in `pyproject.toml`.
 - Do not claim a full framework dependency is installed unless tests import it.
@@ -34,5 +35,7 @@ Use this when adding a new framework or orchestrator integration.
 
 - Prefer wrapping callables and fake framework contexts. This keeps CI
   deterministic and avoids pulling heavy dependencies into the core install.
-- For Microsoft Agent Framework, wrap MAF-shaped `invoke`/`run` methods and
-  handoff payloads without importing Microsoft packages in base tests.
+- For Microsoft Agent Framework, keep the dependency-light MAF-shaped fallback
+  intact and put native async/middleware/streaming seams behind the optional
+  `microsoft` extra. Base tests should use fake MAF contexts; real Microsoft
+  package tests must be extra-gated.

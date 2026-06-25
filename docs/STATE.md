@@ -1,7 +1,7 @@
 # Build State
 
 ## Current phase
-Complete — all phased build prompt work shipped through Phase 5.
+Complete — phased build prompt work shipped through Phase 6.
 
 ## Roadmap
 - [x] Phase 0 — Foundation & context scaffolding
@@ -10,6 +10,7 @@ Complete — all phased build prompt work shipped through Phase 5.
 - [x] Phase 3 — Microsoft Agent Framework adapter + instrument-your-own-agent
 - [x] Phase 4 — False-success benchmark + leaderboard
 - [x] Phase 5 — Positioning, docs & compliance framing
+- [x] Phase 6 — Native Microsoft Agent Framework integration
 
 ## Done
 - Existing baseline includes receipt recording, state freshness checks, handoff
@@ -37,6 +38,11 @@ Complete — all phased build prompt work shipped through Phase 5.
   guidance, compliance framing, and docs drift checks.
 - Post-Phase 5 alignment added the supplied architecture image, a generated
   pending-refund receipt sample, and a diagram-to-receipt field map.
+- Phase 6 fixed CI pytest import path drift for the top-level `benchmark/`
+  package and added `MicrosoftAgentFrameworkNativeIntegration` for async
+  `Agent.run(...)`, async agent middleware, function/tool middleware, streaming
+  methods, context metadata mapping, and extra-gated Microsoft dependency
+  wiring.
 
 ## Decisions
 - Keep the core dependency-free; optional integrations must live behind extras.
@@ -47,9 +53,15 @@ Complete — all phased build prompt work shipped through Phase 5.
   automatic compensation.
 - Failed outcomes stay visible as failed receipts even when a low-criticality
   policy fail-opens and allows continuation.
-- Microsoft Agent Framework support is currently an interface around
-  MAF-shaped callables; it intentionally avoids importing Microsoft packages in
-  the base install.
+- Microsoft Agent Framework support now has two paths: a native optional
+  integration for real MAF async/middleware seams and the original
+  dependency-light MAF-shaped callable fallback.
+- Verified MAF API seam on 2026-06-25 from official Microsoft sources:
+  `agent-framework` installs from PyPI, supports Python 3.10+, exposes
+  `agent_framework.Agent`, `Agent.run(...)`, async middleware with
+  `(context, call_next)`, `AgentContext`, `FunctionInvocationContext`, and
+  streaming/workflow samples. The package remains optional behind the
+  `microsoft` extra.
 - Benchmark results are scenario-suite results only; they should not be framed
   as universal reliability guarantees.
 - The README uses the human-supplied architecture image at
@@ -69,12 +81,16 @@ Complete — all phased build prompt work shipped through Phase 5.
 - Tamper evidence is hash-chain integrity, not signing or tamper-proof storage.
 - The local sandbox can pick up an older editable install; use `PYTHONPATH=src`
   when validating this copied checkout directly.
+- GitHub Actions runs `python -m pytest`; keep `pythonpath = ["src", "."]` in
+  `pyproject.toml` so the current checkout wins over stale editable installs
+  and top-level helper packages like `benchmark/` import on Linux CI.
 
 ## Next
 - Maintain benchmark/docs sync on future changes.
-- Future, not now: deeper native framework packages, hosted community
-  leaderboard automation, signed receipts, richer graph visualization, and
-  legal-review-specific compliance templates.
+- Future, not now: deeper native LangGraph/CrewAI/AutoGen/Azure Durable/OpenAI
+  Agents SDK packages, hosted community leaderboard automation, signed
+  receipts, richer graph visualization, and legal-review-specific compliance
+  templates.
 
 ## Open questions for the human
 - None.

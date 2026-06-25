@@ -199,15 +199,21 @@ examples in `examples/crewai_style_adapter.py` and
 
 ## Microsoft Adapter
 
-Phase 3 adds a dependency-light Microsoft Agent Framework-shaped adapter:
+There are two Microsoft Agent Framework paths:
+
+- `MicrosoftAgentFrameworkNativeIntegration` for real async Agent Framework
+  seams: `Agent.run(...)`, async middleware, function/tool middleware, and
+  streaming methods. Install it with `agent-consistency[microsoft]` on Python
+  3.10+.
+- `MicrosoftAgentFrameworkConsistencyAdapter` as the dependency-light fallback
+  for MAF-shaped callables.
 
 ```python
-from agent_consistency.integrations import MicrosoftAgentFrameworkConsistencyAdapter
+from agent_consistency.integrations import MicrosoftAgentFrameworkNativeIntegration
 
-adapter = MicrosoftAgentFrameworkConsistencyAdapter(run_id="refund-maf")
-refund_agent = adapter.wrap_agent_method(
+integration = MicrosoftAgentFrameworkNativeIntegration(run_id="refund-maf")
+refund_agent = integration.wrap_agent_run(
     maf_refund_agent,
-    method="invoke",
     action="issue_refund",
     criticality="financial",
     outcome_name="refund_settled",
@@ -215,9 +221,10 @@ refund_agent = adapter.wrap_agent_method(
 )
 ```
 
-The adapter wraps agent methods and handoff records without importing Microsoft
-packages into the core install. The quickest generic path is in
-`examples/instrument_existing_agent/`.
+The native integration keeps Microsoft packages out of the base install and
+uses the official Agent Framework middleware shape. See
+[Microsoft Agent Framework](docs/microsoft-agent-framework.md). The quickest
+generic path is still in `examples/instrument_existing_agent/`.
 
 ## Development
 

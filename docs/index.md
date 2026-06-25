@@ -41,5 +41,6 @@ Use the live demo when you want the visual story:
 - [Benchmark](benchmark.md): deterministic false-success catch-rate suite.
 - [Diagram-to-receipt map](diagram-receipt-map.md): map the architecture image labels to real receipt JSON.
 - [Adapters](adapters.md): Microsoft Agent Framework, LangGraph, CrewAI, and AutoGen-style wrappers.
+- [Microsoft Agent Framework](microsoft-agent-framework.md): native async middleware and streaming integration.
 - [Production notes](production.md): rollout modes, receipt stores, and hot path guidance.
 - [Compliance framing](compliance.md): how receipts map onto evidence and oversight needs.

@@ -1,6 +1,6 @@
 # Roadmap
 
-The phased build prompt is complete through Phase 5. This page records what is
+The phased build prompt is complete through Phase 6. This page records what is
 shipped now and what remains future work, not a dated release promise.
 
 ## Completed Phases
@@ -18,11 +18,13 @@ shipped now and what remains future work, not a dated release promise.
   leaderboard submission format.
 - Phase 5: launch positioning, README benchmark framing, production notes,
   compliance framing, and docs drift cleanup.
+- Phase 6: native Microsoft Agent Framework integration surface for async
+  `Agent.run(...)`, middleware, function/tool middleware, and streaming methods.
 
 ## Future, Not Now
 
 - Deeper native framework packages that depend on real LangGraph, CrewAI,
-  AutoGen, Azure Durable, or Microsoft Agent Framework runtimes.
+  AutoGen, Azure Durable, or OpenAI Agents SDK runtimes.
 - Hosted community leaderboard automation and submission validation.
 - Signed receipts behind an optional crypto extra.
 - Richer graph visualization for receipt chains and handoffs.
