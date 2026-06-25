@@ -37,7 +37,9 @@ Complete — phased build prompt work shipped through Phase 6.
   irreversible-action safety interlock, benchmark headline, production rollout
   guidance, compliance framing, and docs drift checks.
 - Post-Phase 5 alignment added the supplied architecture image, a generated
-  pending-refund receipt sample, and a diagram-to-receipt field map.
+  pending-refund receipt sample, and a diagram-to-receipt field map. The current
+  image/map use the `fresh`, `tool_call`, `tool_response`, `outcome_verify`, and
+  `decision_blocked` label set.
 - Phase 6 fixed CI pytest import path drift for the top-level `benchmark/`
   package and added `MicrosoftAgentFrameworkNativeIntegration` for async
   `Agent.run(...)`, async agent middleware, function/tool middleware, streaming
@@ -74,6 +76,7 @@ Complete — phased build prompt work shipped through Phase 6.
   `assets/architecture.png`.
 - The architecture image uses compact presentation labels; the source of truth
   remains the structured receipt JSON documented in `docs/diagram-receipt-map.md`.
+  `Freshness` is the public diagram label for state freshness checks.
 - The pending-refund banner remains future collateral; do not add a generated
   banner image without human approval.
 

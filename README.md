@@ -31,9 +31,9 @@ result, not a universal reliability guarantee.
 
 ![agent-consistency architecture](assets/architecture.png)
 
-The image uses compact labels such as `state_ok=true` and `outcome_ok=true` for
-readability. Stored receipts use structured JSON fields. See the
-[diagram-to-receipt map](docs/diagram-receipt-map.md) and the generated
+The image uses compact labels such as `fresh=true`, `handoff_ok=true`, and
+`outcome_ok=false` for readability. Stored receipts use structured JSON fields.
+See the [diagram-to-receipt map](docs/diagram-receipt-map.md) and the generated
 [pending-refund receipt sample](docs/samples/pending-refund-receipts.jsonl).
 
 ## Install

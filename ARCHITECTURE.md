@@ -20,8 +20,8 @@ Each `WorkflowRun` is made of `AgentStep` receipts. A step can record:
 
 The gate checks three kinds of consistency:
 
-- **State:** a step may compare the snapshot it read with the current source of
-  truth before writing or approving.
+- **Freshness:** a step may compare the snapshot it read with the current
+  source of truth before writing or approving.
 - **Handoff:** a downstream step may require facts, constraints, assumptions,
   evidence, verified artifacts, and contract-specific verifier results.
 - **Outcome:** a side-effecting step may re-query ground truth before letting the
