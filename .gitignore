@@ -30,4 +30,9 @@ env/
 
 # Project scratch/output
 receipts.jsonl
+runs/
+*.jsonl
+!tests/fixtures/**/*.jsonl
+!benchmark/**/*.jsonl
+benchmark/results.local.md
 *.log
