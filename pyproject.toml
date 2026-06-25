@@ -73,10 +73,10 @@ postgres = [
   "psycopg[binary]>=3.2",
 ]
 microsoft = [
-  "agent-framework>=1.9.0; python_version >= '3.10'",
+  "agent-framework-core>=1.9.0; python_version >= '3.10'",
 ]
 native-microsoft = [
-  "agent-framework>=1.9.0; python_version >= '3.10'",
+  "agent-framework-core>=1.9.0; python_version >= '3.10'",
 ]
 
 
@@ -92,6 +92,7 @@ testpaths = ["tests"]
 pythonpath = ["src", "."]
 markers = [
   "performance: smoke tests with generous timing thresholds",
+  "microsoft_live: imports the real Microsoft Agent Framework package",
 ]
 
 [tool.ruff]

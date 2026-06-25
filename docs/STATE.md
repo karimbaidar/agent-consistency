@@ -43,6 +43,12 @@ Complete — phased build prompt work shipped through Phase 6.
   `Agent.run(...)`, async agent middleware, function/tool middleware, streaming
   methods, context metadata mapping, and extra-gated Microsoft dependency
   wiring.
+- The live Microsoft Agent Framework hardening lane added
+  `tests/integration/test_microsoft_agent_framework_live.py` and a CI
+  `microsoft-live` job. That job installs `agent-consistency[test,microsoft]`
+  on Python 3.11, constructs a real `agent_framework.Agent` with a deterministic
+  local `BaseChatClient`, and verifies both allow and fail-closed outcomes
+  without external provider credentials.
 
 ## Decisions
 - Keep the core dependency-free; optional integrations must live behind extras.
@@ -57,11 +63,11 @@ Complete — phased build prompt work shipped through Phase 6.
   integration for real MAF async/middleware seams and the original
   dependency-light MAF-shaped callable fallback.
 - Verified MAF API seam on 2026-06-25 from official Microsoft sources:
-  `agent-framework` installs from PyPI, supports Python 3.10+, exposes
-  `agent_framework.Agent`, `Agent.run(...)`, async middleware with
-  `(context, call_next)`, `AgentContext`, `FunctionInvocationContext`, and
-  streaming/workflow samples. The package remains optional behind the
-  `microsoft` extra.
+  `agent-framework-core` installs from PyPI, supports Python 3.10+, exposes
+  `agent_framework.Agent`, `Agent.run(...)`, async middleware, `BaseChatClient`,
+  and `ChatResponse`. The package remains optional behind the `microsoft`
+  extra; provider packages such as Foundry or OpenAI can be installed by user
+  apps when needed.
 - Benchmark results are scenario-suite results only; they should not be framed
   as universal reliability guarantees.
 - The README uses the human-supplied architecture image at

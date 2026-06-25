@@ -14,9 +14,9 @@ the real framework is needed:
 python -m pip install "agent-consistency[microsoft]"
 ```
 
-The Microsoft `agent-framework` package currently requires Python 3.10+, so the
-extra is marked for Python 3.10+ while the core package still supports Python
-3.9+.
+The Microsoft `agent-framework-core` package currently requires Python 3.10+,
+so the extra is marked for Python 3.10+ while the `agent-consistency` core
+package still supports Python 3.9+.
 
 ## Verified API Seam
 
@@ -32,6 +32,25 @@ Framework:
 It does not import Microsoft packages at module import time. User code imports
 MAF and passes real agents or middleware registration points into the
 integration.
+
+## Live Integration Test
+
+The default test suite keeps the base package dependency-free and skips the live
+Microsoft test when Microsoft Agent Framework core is not installed. To run the
+real-package check locally:
+
+```bash
+python -m pip install -e ".[test,microsoft]"
+python -m pytest tests/integration/test_microsoft_agent_framework_live.py
+```
+
+The live test builds a real `agent_framework.Agent` around a deterministic
+`BaseChatClient` provider, wraps `Agent.run(...)` with
+`MicrosoftAgentFrameworkNativeIntegration`, and verifies both the allow path and
+the fail-closed refund path without requiring Azure, OpenAI, or other external
+credentials. CI runs this as a separate Python 3.11 job named `microsoft-live`.
+Install provider packages such as `agent-framework-foundry` or
+`agent-framework-openai` separately when your app uses those clients.
 
 ## Wrap Agent.run
 

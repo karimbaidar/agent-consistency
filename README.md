@@ -226,6 +226,11 @@ uses the official Agent Framework middleware shape. See
 [Microsoft Agent Framework](docs/microsoft-agent-framework.md). The quickest
 generic path is still in `examples/instrument_existing_agent/`.
 
+CI also includes a `microsoft-live` job that installs the optional Microsoft
+extra and runs a real `agent_framework.Agent` with a deterministic local
+`BaseChatClient` provider, so the native wrapper is checked against the actual
+package without requiring cloud credentials.
+
 ## Development
 
 ```bash

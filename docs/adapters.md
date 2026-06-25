@@ -47,7 +47,8 @@ refund = await refund_agent({"refund_id": "rf_1"})
 ```
 
 Install with `agent-consistency[microsoft]` on Python 3.10+ when you want the
-real `agent-framework` package. The base install remains dependency-free.
+real Microsoft Agent Framework core package. The base install remains
+dependency-free.
 
 The native integration also exposes `agent_middleware(...)`,
 `function_middleware(...)`, and `wrap_agent_stream(...)`; see
