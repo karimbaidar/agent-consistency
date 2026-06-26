@@ -117,3 +117,17 @@ def test_scan_does_not_flag_everything():
 
     assert report.high_severity == 0
     assert report.risky_actions_found <= 1
+
+
+def test_scan_ignores_generated_lab_static_assets(tmp_path):
+    generated = tmp_path / "src" / "agent_consistency" / "lab_static" / "assets"
+    generated.mkdir(parents=True)
+    (generated / "index.js").write_text(
+        'function send_refund_confirmation(){return "Your refund is complete."}',
+        encoding="utf-8",
+    )
+
+    report = scan_target(str(tmp_path))
+
+    assert report.files_scanned == 0
+    assert report.findings == []
