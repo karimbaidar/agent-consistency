@@ -8,15 +8,15 @@ https://karimbaidar.github.io/false-success-lab/
 
 Title options:
 
-- Show HN: agent-consistency - stop agents from saying done before the world agrees
+- Show HN: agent-consistency - stop agents from confirming unverified outcomes
 - Show HN: A flight recorder and gate layer for false-success bugs in AI agents
-- Show HN: Detect when agent workflows continue after failed real-world outcomes
+- Show HN: Detect when agent workflows continue after unconfirmed outcomes
 
 First comment:
 
 ```text
 I built agent-consistency to catch a class of agent bug I kept seeing: the tool
-call succeeds, but the business outcome is still false.
+call succeeds, but the confirmed result is still missing.
 
 Canonical example: a refund API returns 200 OK, provider status is still
 pending, and the agent is about to email "your refund is complete."
@@ -33,12 +33,12 @@ the workflow was allowed to continue.
 ## X / Twitter Thread
 
 ```text
-1/ AI agents are starting to take real actions: refunds, approvals, account
-updates, customer emails.
+1/ AI agents are starting to take customer-visible actions: refunds, approvals,
+account updates, and customer emails.
 
 That creates a new bug class: false-success bugs.
 
-The agent says "done" before the real world agrees.
+The agent confirms an outcome before the source system confirms the result.
 
 2/ Example:
 
@@ -72,10 +72,10 @@ Agent reliability is becoming a liability problem, not a prompt problem.
 
 When an AI agent sends a customer email, issues a refund, approves a change, or
 updates an account, a green trace is not enough. The workflow needs evidence
-that the real-world outcome became true before the agent makes a claim.
+that the source system confirmed the result before the agent makes a claim.
 
 I built agent-consistency to catch "false-success bugs": cases where a tool call
-succeeds but the business outcome is still false.
+succeeds but the confirmed result is still missing or false.
 
 Example: the refund API returns 200 OK, but provider status is still pending.
 The agent is about to email "your refund is complete." agent-consistency blocks
@@ -91,8 +91,8 @@ https://karimbaidar.github.io/false-success-lab/
 [P] Detect false-success bugs in local or hosted agent workflows
 
 I built a zero-dependency Python package called agent-consistency. It adds
-receipts and gates around agent workflows so a workflow can prove the real-world
-outcome happened before continuing.
+receipts and gates around agent workflows so a workflow can prove the source
+system confirmed the result before continuing.
 
 The motivating bug: refund API returns 200 OK, provider status is still pending,
 agent emails "your refund is complete."
@@ -110,7 +110,8 @@ https://github.com/karimbaidar/agent-consistency
 [P] agent-consistency: receipts and gates for false-success bugs
 
 As agents move from chat into actions, I think one bug class needs a name:
-false-success bugs. The workflow says done before the world agrees.
+false-success bugs. The workflow claims completion before the source system
+confirms the result.
 
 This package records receipts for state reads, handoffs, evidence, and outcome
 checks. Detect mode can report missing gates and customer-visible actions after
@@ -139,10 +140,10 @@ https://karimbaidar.github.io/false-success-lab/
 
 ```text
 agent-consistency is a zero-dependency Python library for a sharp new agent
-reliability category: false-success bugs, where an agent says the job is done
-before the real world agrees. The live demo shows a refund API returning 200 OK
-while provider status is still pending; the protected workflow blocks the
-customer email and records a receipt explaining why.
+reliability category: false-success bugs, where an agent reports completion
+before the source system confirms the result. The live demo shows a refund API
+returning 200 OK while provider status is still pending; the protected workflow
+blocks the customer email and records a receipt explaining why.
 ```
 
 ## Distribution Note
