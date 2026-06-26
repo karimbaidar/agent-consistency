@@ -1,6 +1,7 @@
 import ast
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import tempfile
@@ -11,7 +12,9 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
+CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
 SOURCE_EXTENSIONS = {".py", ".js", ".jsx", ".ts", ".tsx"}
+TEST_FILE_MARKERS = (".test.", ".spec.", "_test.")
 DEFAULT_EXCLUDED_DIRS = {
     ".git",
     ".mypy_cache",
@@ -100,10 +103,79 @@ OUTCOME_TERMS = (
     "refund_settled",
 )
 IDEMPOTENCY_TERMS = ("idempotency_key", "idempotent", "dedupe_key")
+AGENTIC_TERMS = (
+    "agent",
+    "agents",
+    "workflow",
+    "workflows",
+    "handoff",
+    "handoffs",
+    "tool_call",
+    "tool_calls",
+    "tool_result",
+    "orchestrator",
+    "planner",
+    "executor",
+    "llm",
+    "prompt",
+    "assistant",
+    "model_provider",
+)
+FRAMEWORK_TERMS = {
+    "LangGraph": ("langgraph", "stategraph"),
+    "CrewAI": ("crewai", "crew"),
+    "AutoGen": ("autogen", "autogen_core"),
+    "Semantic Kernel": ("semantic_kernel", "semantickernel"),
+    "Microsoft Agent Framework": ("agent_framework", "workflowcontext"),
+    "OpenAI Agents": ("openai_agents", "agents.run", "runcontextwrapper"),
+    "LlamaIndex": ("llama_index", "llamaindex"),
+}
+INTERNAL_MESSAGE_TERMS = (
+    "ctx.send_message",
+    "workflowcontext",
+    "agentworkflow",
+    "courtworkflowstate",
+    "message_envelope",
+    "messagecontext",
+    "messagedroppedexception",
+    "_process_send",
+    "_send_message",
+    "runtime_message",
+    "telemetry_metadata",
+    "elicitation",
+    "websocket",
+    "wsbridge",
+    "singlethreadedagentruntime",
+    "_worker_runtime",
+    "routedagent",
+)
+CUSTOMER_TERMS = ("customer", "client", "user_email", "email", "ticket", "refund", "account")
 
 
 class ScanError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class ScanProfile:
+    applicability: str = "general-code"
+    confidence: str = "low"
+    summary: str = "No clear agent workflow surface was detected."
+    agentic_files: int = 0
+    action_files: int = 0
+    framework_signals: List[str] = field(default_factory=list)
+    signal_terms: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "applicability": self.applicability,
+            "confidence": self.confidence,
+            "summary": self.summary,
+            "agentic_files": self.agentic_files,
+            "action_files": self.action_files,
+            "framework_signals": list(self.framework_signals),
+            "signal_terms": list(self.signal_terms),
+        }
 
 
 @dataclass(frozen=True)
@@ -118,6 +190,7 @@ class ScanFinding:
     evidence_missing: List[str] = field(default_factory=list)
     suggested_fix: str = ""
     snippet: str = ""
+    category: str = "general"
     rule: str = "risky_action_without_confirmation"
     fingerprint: str = ""
 
@@ -133,6 +206,7 @@ class ScanFinding:
             "evidence_missing": list(self.evidence_missing),
             "suggested_fix": self.suggested_fix,
             "snippet": self.snippet,
+            "category": self.category,
             "rule": self.rule,
             "fingerprint": self.fingerprint,
         }
@@ -147,10 +221,11 @@ class ScanReport:
     files_scanned: int = 0
     baseline_path: Optional[str] = None
     suppressed_by_baseline: int = 0
+    profile: ScanProfile = field(default_factory=ScanProfile)
 
     @property
     def risky_actions_found(self) -> int:
-        return len(self.findings)
+        return len(self.finding_groups)
 
     @property
     def high_severity(self) -> int:
@@ -190,7 +265,12 @@ class ScanReport:
 
     @property
     def risk_score(self) -> int:
-        score = self.high_severity * 20 + self.medium_severity * 10 + self.low_severity * 3
+        score = (
+            self.high_severity * 24
+            + self.medium_severity * 12
+            + self.low_severity * 4
+            + min(self.false_success_exposure, 18)
+        )
         return min(100, score)
 
     @property
@@ -199,7 +279,13 @@ class ScanReport:
             return "medium"
         if self.findings:
             return "low"
+        if self.profile.applicability == "general-code":
+            return "low"
         return "high"
+
+    @property
+    def finding_groups(self) -> List[Dict[str, Any]]:
+        return _finding_groups(self.ranked_findings)
 
     @property
     def ranked_findings(self) -> List[ScanFinding]:
@@ -222,6 +308,13 @@ class ScanReport:
             "repository": self.repository,
             "source": self.source,
             "files_scanned": self.files_scanned,
+            "applicability": self.profile.applicability,
+            "applicability_confidence": self.profile.confidence,
+            "applicability_summary": self.profile.summary,
+            "agentic_files": self.profile.agentic_files,
+            "action_files": self.profile.action_files,
+            "framework_signals": list(self.profile.framework_signals),
+            "signal_terms": list(self.profile.signal_terms),
             "risk_score": self.risk_score,
             "confidence": self.confidence,
             "risky_actions_found": self.risky_actions_found,
@@ -235,11 +328,12 @@ class ScanReport:
             "missing_handoff_facts": self.missing_handoff_facts,
             "baseline_path": self.baseline_path,
             "suppressed_by_baseline": self.suppressed_by_baseline,
+            "finding_groups": [_finding_group_to_dict(group) for group in self.finding_groups],
             "findings": [finding.to_dict() for finding in self.ranked_findings],
         }
 
     def _count(self, severity: str) -> int:
-        return sum(1 for finding in self.findings if finding.severity == severity)
+        return sum(1 for group in self.finding_groups if group["severity"] == severity)
 
 
 def scan_target(
@@ -266,6 +360,7 @@ def scan_path(
 
     root = path if path.is_dir() else path.parent
     files = [path] if path.is_file() else list(_iter_source_files(path))
+    profile = _profile_repo(files, root)
     findings: List[ScanFinding] = []
     verified_actions_found = 0
     for file_path in files:
@@ -283,6 +378,59 @@ def scan_path(
         files_scanned=len(files),
         baseline_path=baseline_path,
         suppressed_by_baseline=len(findings) - len(filtered),
+        profile=profile,
+    )
+
+
+def _profile_repo(files: List[Path], root: Path) -> ScanProfile:
+    framework_signals: set[str] = set()
+    signal_terms: set[str] = set()
+    agentic_files = 0
+    action_files = 0
+
+    for path in files:
+        try:
+            sample = path.read_text(encoding="utf-8", errors="ignore")[:40_000]
+        except OSError:
+            continue
+        haystack = _normalize(f"{_relative_path(path, root)}\n{sample}")
+        file_is_agentic = False
+
+        for label, terms in FRAMEWORK_TERMS.items():
+            if any(_normalize(term) in haystack for term in terms):
+                framework_signals.add(label)
+                file_is_agentic = True
+        for term in AGENTIC_TERMS:
+            normalized_term = _normalize(term).strip("_")
+            if _token_or_phrase_present(haystack, normalized_term):
+                signal_terms.add(normalized_term)
+                file_is_agentic = True
+        if any(_normalize(action).strip("_") in haystack for action in RISKY_ACTIONS):
+            action_files += 1
+        if file_is_agentic:
+            agentic_files += 1
+
+    if framework_signals or agentic_files >= 3:
+        applicability = "agentic-workflow"
+        confidence = "high" if framework_signals or agentic_files >= 8 else "medium"
+        summary = "This repo looks like an AI agent or workflow codebase."
+    elif agentic_files or action_files:
+        applicability = "workflow-adjacent"
+        confidence = "medium" if action_files else "low"
+        summary = "This repo has workflow or side-effect signals, but weak agentic evidence."
+    else:
+        applicability = "general-code"
+        confidence = "low"
+        summary = "This repo does not look agentic; scan results are a broad safety pass only."
+
+    return ScanProfile(
+        applicability=applicability,
+        confidence=confidence,
+        summary=summary,
+        agentic_files=agentic_files,
+        action_files=action_files,
+        framework_signals=sorted(framework_signals),
+        signal_terms=sorted(signal_terms)[:12],
     )
 
 
@@ -291,6 +439,7 @@ def render_scan_text(report: ScanReport) -> str:
         "False-success report card",
         "",
         f"Repository: {report.repository}",
+        f"Repo fit: {report.profile.applicability} ({report.profile.confidence})",
         f"Risky actions found: {report.risky_actions_found}",
         f"High severity: {report.high_severity}",
         f"False-success exposure: {report.false_success_exposure} unguarded actions",
@@ -304,25 +453,27 @@ def render_scan_text(report: ScanReport) -> str:
         lines.append("This does not prove the repo is safe; it means no configured pattern fired.")
         return "\n".join(lines) + "\n"
 
-    top = report.ranked_findings[0]
+    top_group = report.finding_groups[0]
+    top = top_group["representative"]
     lines.extend(
         [
             "Top finding:",
-            f"{top.action} {top.why}",
-            f"File: {top.path}:{top.line}",
-            f"Severity/confidence: {top.severity.upper()} / {top.confidence}",
+            f"{top_group['action']} {top_group['why']}",
+            f"Representative file: {top.path}:{top.line}",
+            f"Severity/confidence: {top_group['severity'].upper()} / {top_group['confidence']}",
+            f"Occurrences: {top_group['count']}",
             "",
             "Findings:",
         ]
     )
-    for finding in report.ranked_findings:
-        if finding.confidence == "low":
+    for group in report.finding_groups:
+        if group["confidence"] == "low":
             lines.append("Possible risk, needs review.")
         lines.append(
-            f"{finding.severity.upper()}  {finding.action} "
-            f"({finding.confidence} confidence) at {finding.path}:{finding.line}"
+            f"{group['severity'].upper()}  {group['action']} "
+            f"({group['confidence']} confidence, {group['count']} occurrence(s))"
         )
-        lines.append(f"      {finding.why}")
+        lines.append(f"      {group['why']}")
     return "\n".join(lines) + "\n"
 
 
@@ -331,6 +482,8 @@ def render_scan_markdown(report: ScanReport) -> str:
         "# False-success report card",
         "",
         f"Repository: `{report.repository}`",
+        f"Repo fit: `{report.profile.applicability}` ({report.profile.confidence})",
+        f"Repo fit note: {report.profile.summary}",
         f"Risk score: {report.risk_score} / 100 (heuristic)",
         f"Confidence: {report.confidence}",
         f"False-success exposure: {report.false_success_exposure} unguarded actions",
@@ -341,6 +494,9 @@ def render_scan_markdown(report: ScanReport) -> str:
         f"* High severity: {report.high_severity}",
         f"* Medium severity: {report.medium_severity}",
         f"* Low severity: {report.low_severity}",
+        f"* Raw exposure: {report.false_success_exposure}",
+        f"* Files scanned: {report.files_scanned}",
+        f"* Agentic files: {report.profile.agentic_files}",
         f"* Verified actions found: {report.verified_actions_found}",
         f"* Idempotency gaps: {report.idempotency_gaps}",
         f"* Missing outcome checks: {report.missing_outcome_checks}",
@@ -365,12 +521,14 @@ def render_scan_markdown(report: ScanReport) -> str:
         ("Low-risk findings", "low"),
     )
     for title, severity in grouped:
-        severity_findings = [f for f in report.ranked_findings if f.severity == severity]
-        if not severity_findings:
+        severity_groups = [
+            group for group in report.finding_groups if group["severity"] == severity
+        ]
+        if not severity_groups:
             continue
         lines.extend(["", f"## {title}", ""])
-        for finding in severity_findings:
-            lines.extend(_finding_markdown(finding))
+        for group in severity_groups:
+            lines.extend(_finding_group_markdown(group))
     return "\n".join(lines) + "\n"
 
 
@@ -443,6 +601,8 @@ def _iter_source_files(root: Path) -> Iterable[Path]:
     for path in root.rglob("*"):
         if not path.is_file() or path.suffix.lower() not in SOURCE_EXTENSIONS:
             continue
+        if any(marker in path.name.lower() for marker in TEST_FILE_MARKERS):
+            continue
         try:
             relative = path.relative_to(root)
         except ValueError:
@@ -486,6 +646,8 @@ def _scan_python_file(
             continue
         end_line = getattr(node, "end_lineno", node.lineno)
         context = _context(lines, node.lineno, end_line)
+        if _should_ignore_action(action, context, _line(lines, node.lineno), kind="function"):
+            continue
         if _has_outcome_protection(context):
             verified += 1
             continue
@@ -512,6 +674,8 @@ def _scan_python_file(
         if not action:
             continue
         context = _context(lines, max(1, line - 6), min(len(lines), line + 6))
+        if _should_ignore_action(action, context, _line(lines, line), kind="call"):
+            continue
         if _has_outcome_protection(context):
             verified += 1
             continue
@@ -538,7 +702,11 @@ def _scan_text_file(path: Path, root: Path, lines: List[str]) -> tuple[List[Scan
         action = _risky_action_from_name(line_text)
         if not action:
             continue
+        if not _looks_like_executable_text_line(line_text, action):
+            continue
         context = _context(lines, max(1, index - 6), min(len(lines), index + 6))
+        if _should_ignore_action(action, context, line_text, kind="pattern"):
+            continue
         if _has_outcome_protection(context):
             verified += 1
             continue
@@ -600,6 +768,7 @@ def _build_finding(
         evidence_missing=evidence_missing,
         suggested_fix=suggestion,
         snippet=snippet,
+        category=category,
         fingerprint=fingerprint,
     )
 
@@ -639,14 +808,110 @@ def _finding_markdown(finding: ScanFinding) -> List[str]:
     return lines
 
 
+def _finding_group_markdown(group: Dict[str, Any]) -> List[str]:
+    representative = group["representative"]
+    lines = [
+        f"### {group['severity'].upper()} - `{group['action']}`",
+        f"Category: `{group['category']}`",
+        f"Occurrences: {group['count']}",
+        f"Representative file: `{representative.path}:{representative.line}`",
+        f"Confidence: `{group['confidence']}`",
+        "",
+    ]
+    if group["confidence"] == "low":
+        lines.extend(["Possible risk, needs review.", ""])
+    lines.extend(
+        [
+            group["why"],
+            "",
+            "Evidence found:",
+            *[f"* {item}" for item in group["evidence_found"]],
+            "",
+            "Evidence missing:",
+            *[f"* {item}" for item in group["evidence_missing"]],
+            "",
+            "Suggested fix:",
+            "",
+            "```python",
+            representative.suggested_fix,
+            "```",
+            "",
+            "Representative code:",
+            "",
+            "```text",
+            representative.snippet,
+            "```",
+        ]
+    )
+    if len(group["locations"]) > 1:
+        lines.extend(
+            ["", "Other locations:", *[f"* `{location}`" for location in group["locations"][1:6]]]
+        )
+    return lines
+
+
 def _risky_action_from_name(value: str) -> Optional[str]:
-    normalized = _normalize(value)
+    normalized = _normalize(value).strip("_")
     if "refund" in normalized and any(term in normalized for term in ("send", "email", "message")):
         return "send_refund_confirmation"
     for action in RISKY_ACTIONS:
-        if _normalize(action) in normalized:
+        action_key = _normalize(action).strip("_")
+        if "_" in action_key and action_key in normalized:
+            return action
+        if "_" not in action_key and _verb_token_present(normalized, action_key):
             return action
     return None
+
+
+def _verb_token_present(normalized: str, action_key: str) -> bool:
+    tokens = [token for token in normalized.split("_") if token]
+    if action_key == "approve":
+        return "approve" in tokens
+    if action_key == "deploy":
+        return any(token in {"deploy", "deploys", "deployed", "deploying"} for token in tokens)
+    if action_key == "refund":
+        return any(token in {"refund", "refunds", "refunded"} for token in tokens)
+    if action_key == "provision":
+        return any(
+            token in {"provision", "provisions", "provisioned", "provisioning"}
+            for token in tokens
+        )
+    return action_key in tokens
+
+
+def _should_ignore_action(action: str, context: str, line_text: str, *, kind: str) -> bool:
+    action_key = _normalize(action).strip("_")
+    context_key = _normalize(context)
+    line_key = _normalize(line_text)
+    dangerous_message = _contains_any(context, DANGEROUS_MESSAGE_TERMS)
+    customer_signal = _contains_any(context, CUSTOMER_TERMS)
+
+    if action_key in {"send_message", "send_email", "notify_customer"}:
+        if _contains_any(context, INTERNAL_MESSAGE_TERMS) and not customer_signal:
+            return True
+        if not dangerous_message and not customer_signal and "email" not in action_key:
+            return True
+
+    if action_key in {"approve", "deploy", "provision"} and kind == "pattern":
+        if not re.search(r"\b(function|async|const|let|var|def|await|return)\b|[.(]", line_text):
+            return True
+
+    if action_key == "write_state" and "_write_state" in line_key and "state_file" in context_key:
+        return True
+
+    return False
+
+
+def _looks_like_executable_text_line(line_text: str, action: str) -> bool:
+    stripped = line_text.strip()
+    if stripped.startswith(("import ", "from ", "export ", "//", "#")):
+        return False
+    action_key = _normalize(action).strip("_")
+    if action_key in {"approve", "deploy", "provision", "refund"}:
+        return bool(
+            re.search(r"\b(function|async|const|let|var|def|await|return)\b|[.(]", line_text)
+        )
+    return True
 
 
 def _category(action_key: str, context: str) -> str:
@@ -772,6 +1037,12 @@ def _contains_any(value: str, terms: Iterable[str]) -> bool:
     return any(term.lower() in lowered for term in terms)
 
 
+def _token_or_phrase_present(normalized: str, term: str) -> bool:
+    if "_" in term:
+        return term in normalized
+    return term in {token for token in normalized.split("_") if token}
+
+
 def _is_suppressed(lines: List[str], line: int) -> bool:
     if line <= 0:
         return False
@@ -807,6 +1078,76 @@ def _relative_path(path: Path, root: Path) -> str:
 def _repository_name(path: Path) -> str:
     resolved = path.resolve()
     return resolved.name if resolved.is_dir() else resolved.parent.name
+
+
+def _finding_groups(findings: Iterable[ScanFinding]) -> List[Dict[str, Any]]:
+    grouped: Dict[tuple[str, str, str], List[ScanFinding]] = {}
+    for finding in findings:
+        key = (finding.category, finding.action, "|".join(sorted(finding.evidence_missing)))
+        grouped.setdefault(key, []).append(finding)
+
+    groups: List[Dict[str, Any]] = []
+    for (category, action, _missing), items in grouped.items():
+        ordered = sorted(
+            items,
+            key=lambda finding: (
+                SEVERITY_ORDER.get(finding.severity, 99),
+                CONFIDENCE_ORDER.get(finding.confidence, 99),
+                finding.path,
+                finding.line,
+            ),
+        )
+        representative = ordered[0]
+        severity = min((item.severity for item in ordered), key=lambda value: SEVERITY_ORDER[value])
+        confidence = min(
+            (item.confidence for item in ordered),
+            key=lambda value: CONFIDENCE_ORDER.get(value, 99),
+        )
+        evidence_found = sorted({item for finding in ordered for item in finding.evidence_found})
+        evidence_missing = sorted(
+            {item for finding in ordered for item in finding.evidence_missing}
+        )
+        locations = [f"{finding.path}:{finding.line}" for finding in ordered]
+        groups.append(
+            {
+                "category": category,
+                "action": action,
+                "severity": severity,
+                "confidence": confidence,
+                "count": len(ordered),
+                "why": representative.why,
+                "evidence_found": evidence_found,
+                "evidence_missing": evidence_missing,
+                "locations": locations,
+                "representative": representative,
+            }
+        )
+
+    return sorted(
+        groups,
+        key=lambda group: (
+            SEVERITY_ORDER.get(group["severity"], 99),
+            CONFIDENCE_ORDER.get(group["confidence"], 99),
+            -int(group["count"]),
+            group["action"],
+        ),
+    )
+
+
+def _finding_group_to_dict(group: Dict[str, Any]) -> Dict[str, Any]:
+    representative = group["representative"]
+    return {
+        "category": group["category"],
+        "action": group["action"],
+        "severity": group["severity"],
+        "confidence": group["confidence"],
+        "count": group["count"],
+        "why": group["why"],
+        "evidence_found": list(group["evidence_found"]),
+        "evidence_missing": list(group["evidence_missing"]),
+        "locations": list(group["locations"]),
+        "representative": representative.to_dict(),
+    }
 
 
 def _dedupe_findings(findings: Iterable[ScanFinding]) -> List[ScanFinding]:

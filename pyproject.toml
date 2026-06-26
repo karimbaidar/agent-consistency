@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-consistency"
-version = "0.3.3"
+version = "0.3.4"
 description = "Reliability layer for AI agent workflows: validate state, handoffs, and outcomes before agents continue."
 readme = "README.md"
 requires-python = ">=3.9"

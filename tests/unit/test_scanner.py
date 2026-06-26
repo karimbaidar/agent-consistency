@@ -58,6 +58,8 @@ def test_scan_json_output_is_stable():
     payload = json.loads(scan_report_to_json(report))
 
     assert payload["risky_actions_found"] == 1
+    assert payload["finding_groups"][0]["count"] == 1
+    assert payload["applicability"] in {"workflow-adjacent", "general-code"}
     assert payload["findings"][0]["fingerprint"]
     assert "generated_at" not in payload
 
@@ -117,3 +119,26 @@ def test_scan_does_not_flag_everything():
 
     assert report.high_severity == 0
     assert report.risky_actions_found <= 1
+
+
+def test_scan_profiles_agentic_internal_routing_without_customer_claim():
+    report = scan_target(str(FIXTURES / "agentic_internal_routing"))
+
+    assert report.profile.applicability == "agentic-workflow"
+    assert report.findings == []
+    assert report.risky_actions_found == 0
+
+
+def test_scan_groups_repeated_false_success_exposure():
+    report = scan_target(str(FIXTURES / "repeated_refund_confirmations"))
+    payload = report.to_dict()
+
+    assert report.false_success_exposure == 2
+    assert report.risky_actions_found == 1
+    assert payload["finding_groups"][0]["count"] == 2
+
+
+def test_scan_ignores_schema_and_test_copy():
+    report = scan_target(str(FIXTURES / "schema_and_test_copy"))
+
+    assert report.findings == []
