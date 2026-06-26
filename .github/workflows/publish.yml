@@ -84,3 +84,15 @@ jobs:
           path: dist
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  docs:
+    name: Deploy docs
+    needs: [build, publish]
+    if: needs.build.outputs.should_publish == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/docs.yml
+    with:
+      deploy: true
