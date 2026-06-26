@@ -23,6 +23,22 @@ decides whether the workflow was allowed to continue.
 
 [Live demo: watch a false-success bug get blocked](https://karimbaidar.github.io/agent-consistency-refund-demo/) | [Quickstart](docs/quickstart.md) | [Benchmark](docs/benchmark.md) | [Production](docs/production.md) | [Compliance](docs/compliance.md)
 
+## Scan Your Repo
+
+Get a pre-integration false-success report card in under 30 seconds:
+
+```bash
+agent-consistency scan .
+agent-consistency scan . --format markdown
+agent-consistency scan . --fail-on high
+agent-consistency scan https://github.com/org/repo
+```
+
+The scanner is conservative. Low-confidence findings say "Possible risk, needs
+review" and should be treated as review prompts, not certain bugs. Use
+`--format markdown` for a copyable report suitable for GitHub issues, PR
+comments, or social posts.
+
 Benchmark: **raw caught 0/6; agent-consistency caught 6/6** on the deterministic
 false-success suite in `benchmark/`. This is a reproducible scenario-suite
 result, not a universal reliability guarantee.

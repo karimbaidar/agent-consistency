@@ -49,6 +49,14 @@ from .reporting import (
     write_html_summary,
 )
 from .run import AgentStep, WorkflowRun
+from .scanner import (
+    ScanFinding,
+    ScanReport,
+    render_scan_markdown,
+    render_scan_text,
+    scan_report_to_json,
+    scan_target,
+)
 from .store import (
     BufferedReceiptStore,
     InMemoryReceiptStore,
@@ -100,11 +108,15 @@ __all__ = [
     "ReceiptVerificationReport",
     "RiskFinding",
     "RiskReport",
+    "ScanFinding",
+    "ScanReport",
     "RefundSettlementVerifier",
     "detect_receipt_file",
     "detect_risks",
     "render_text_summary",
     "render_risk_report",
+    "render_scan_markdown",
+    "render_scan_text",
     "render_verify_report",
     "RunDiff",
     "StaleStateError",
@@ -121,6 +133,8 @@ __all__ = [
     "diff_runs",
     "load_receipts",
     "reliability_gate",
+    "scan_report_to_json",
+    "scan_target",
     "summarize_report",
     "trace_causality",
     "verify_receipt_file",

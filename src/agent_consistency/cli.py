@@ -11,6 +11,14 @@ from .reporting import (
     summarize_report,
     write_html_summary,
 )
+from .scanner import (
+    ScanError,
+    render_scan_markdown,
+    render_scan_text,
+    scan_report_to_json,
+    scan_target,
+    write_baseline,
+)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -35,6 +43,32 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="detect false-success risk in a receipt JSONL file or run dir",
     )
     detect_parser.add_argument("path", help="path to summary.json, receipts.jsonl, or run dir")
+
+    scan_parser = subparsers.add_parser(
+        "scan",
+        help="scan source code for false-success risks before runtime integration",
+    )
+    scan_parser.add_argument("target", help="local path or public https://github.com/org/repo URL")
+    scan_parser.add_argument(
+        "--format",
+        choices=["text", "json", "markdown"],
+        default="text",
+        help="report format",
+    )
+    scan_parser.add_argument(
+        "--fail-on",
+        choices=["high", "medium", "low"],
+        help="exit non-zero when findings at this severity or above are present",
+    )
+    scan_parser.add_argument(
+        "--baseline",
+        help="suppress findings whose fingerprints are in this baseline file",
+    )
+    scan_parser.add_argument(
+        "--write-baseline",
+        action="store_true",
+        help="write current findings to agent-consistency-baseline.json",
+    )
 
     subparsers.add_parser("schema", help="print the receipt JSON Schema")
 
@@ -65,6 +99,25 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 1
         sys.stdout.write(render_risk_report(risk_report))
         return 1 if risk_report.has_high_severity else 0
+
+    if args.command == "scan":
+        try:
+            scan_report = scan_target(args.target, baseline_path=args.baseline)
+        except (OSError, ScanError, ValueError) as exc:
+            sys.stderr.write(f"Error: {exc}\n")
+            return 1
+        if args.format == "json":
+            sys.stdout.write(scan_report_to_json(scan_report))
+        elif args.format == "markdown":
+            sys.stdout.write(render_scan_markdown(scan_report))
+        else:
+            sys.stdout.write(render_scan_text(scan_report))
+        if args.write_baseline:
+            write_baseline(scan_report)
+            sys.stdout.write("Baseline written: agent-consistency-baseline.json\n")
+        if args.fail_on and scan_report.has_severity_at_or_above(args.fail_on):
+            return 1
+        return 0
 
     if args.command == "schema":
         schema = importlib.resources.files("agent_consistency.schemas").joinpath(

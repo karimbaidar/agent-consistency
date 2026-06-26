@@ -51,6 +51,10 @@ Complete — phased build prompt work shipped through Phase 6.
   on Python 3.11, constructs a real `agent_framework.Agent` with a deterministic
   local `BaseChatClient`, and verifies both allow and fail-closed outcomes
   without external provider credentials.
+- Phase F added the static false-success scanner and repo report card:
+  `agent-consistency scan`, JSON/Markdown output, public GitHub URL scanning by
+  temporary clone, baselines, suppression comments, and a `false-success scan`
+  GitHub Action.
 
 ## Decisions
 - Keep the core dependency-free; optional integrations must live behind extras.

@@ -38,6 +38,7 @@ nav:
   - Concepts: concepts.md
   - Quickstart: quickstart.md
   - Detect Mode: detect-mode.md
+  - False Success Lab: false-success-lab.md
   - Verify and Tamper Evidence: verify-tamper-evidence.md
   - Bug Zoo: bug-zoo.md
   - Benchmark: benchmark.md
