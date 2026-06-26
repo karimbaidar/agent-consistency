@@ -316,10 +316,12 @@ class ScanReport:
 
     @property
     def confidence(self) -> str:
-        if any(finding.confidence == "high" for finding in self.findings):
-            return "medium"
         if self.findings:
-            return "low"
+            confidence = min(
+                (finding.confidence for finding in self.findings),
+                key=lambda value: CONFIDENCE_ORDER.get(value, 99),
+            )
+            return confidence if confidence in CONFIDENCE_ORDER else "low"
         if self.profile.applicability == "general-code":
             return "low"
         return "high"
@@ -427,14 +429,14 @@ def scan_path(
 
 
 def _build_system_map(files: List[Path], root: Path, findings: List[ScanFinding]) -> SystemMap:
-    entry_points: List[str] = []
+    entry_points = {finding.path for finding in findings}
     for path in files:
         rel = _relative_path(path, root)
         lowered = rel.lower()
         if path.stem.lower() in ENTRY_POINT_STEMS or any(
             marker in lowered for marker in ENTRY_POINT_MARKERS
         ):
-            entry_points.append(rel)
+            entry_points.add(rel)
     action_surfaces = sorted({finding.action for finding in findings})
     source_systems = sorted(
         {
@@ -1125,7 +1127,7 @@ def _contains_any(value: str, terms: Iterable[str]) -> bool:
 
 
 def _strip_string_literals(value: str) -> str:
-    without_strings = re.sub(r"(['\"])(?:\\.|(?!\1).)*\1", "", value)
+    without_strings = re.sub(r"(['\"`])(?:\\.|(?!\1).)*\1", "", value)
     return re.sub(r">\s*[^<{}()=]+\s*<", "><", without_strings)
 
 

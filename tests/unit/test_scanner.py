@@ -93,6 +93,20 @@ def test_scan_exposes_system_map_and_missing_confirmation():
     assert report.to_dict()["system_map"] == payload["system_map"]
 
 
+def test_scan_system_map_consumes_finding_pass_for_entry_points():
+    report = scan_target(str(FIXTURES / "concordiq_style_approval"))
+    finding = report.ranked_findings[0]
+    system_map = report.system_map
+
+    assert finding.path == "approval.py"
+    assert finding.action == "approve"
+    assert finding.confidence == "medium"
+    assert report.confidence == "medium"
+    assert "approval.py" in system_map.entry_points
+    assert "approve" in system_map.action_surfaces
+    assert "production datastore / infrastructure" in system_map.source_systems
+
+
 def test_scan_markdown_includes_system_map():
     report = scan_target(str(FIXTURES / "refund_missing_confirmation"))
     markdown = render_scan_markdown(report)
