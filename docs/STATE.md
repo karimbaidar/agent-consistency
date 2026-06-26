@@ -55,9 +55,16 @@ Complete — phased build prompt work shipped through Phase 6.
   `agent-consistency scan`, JSON/Markdown output, public GitHub URL scanning by
   temporary clone, baselines, suppression comments, and a `false-success scan`
   GitHub Action.
+- Phase F lab alignment added `agent-consistency lab`: a packaged Svelte UI
+  served by the Python package. The first screen supports the built-in
+  false-success scenario, local repo scanning, and public GitHub repo scanning,
+  then displays the scanner report card, honest confidence note, gate state, and
+  **Copy report** Markdown output.
 
 ## Decisions
 - Keep the core dependency-free; optional integrations must live behind extras.
+- The lab frontend can use Svelte/Vite as dev tooling under `lab/`, but runtime
+  package installs still serve prebuilt static files and do not require Node.
 - Detect mode stays explicit about limits: it can report risk from declared
   receipts, not hidden or undeclared agent claims.
 - Financial and irreversible steps force fail-closed even when a custom policy
@@ -94,6 +101,8 @@ Complete — phased build prompt work shipped through Phase 6.
 - Tamper evidence is hash-chain integrity, not signing or tamper-proof storage.
 - The local sandbox can pick up an older editable install; use `PYTHONPATH=src`
   when validating this copied checkout directly.
+- After editing `lab/src/`, run `npm run build` in `lab/` so
+  `src/agent_consistency/lab_static/` stays synced with the Svelte source.
 - GitHub Actions runs `python -m pytest`; keep `pythonpath = ["src", "."]` in
   `pyproject.toml` so the current checkout wins over stale editable installs
   and top-level helper packages like `benchmark/` import on Linux CI.

@@ -32,12 +32,18 @@ agent-consistency scan .
 agent-consistency scan . --format markdown
 agent-consistency scan . --fail-on high
 agent-consistency scan https://github.com/org/repo
+agent-consistency lab
 ```
 
 The scanner is conservative. Low-confidence findings say "Possible risk, needs
 review" and should be treated as review prompts, not certain bugs. Use
 `--format markdown` for a copyable report suitable for GitHub issues, PR
 comments, or social posts.
+
+`agent-consistency lab` starts a local Svelte UI at `http://127.0.0.1:8765`.
+It offers three entry points: try the built-in refund false-success scenario,
+scan a local repo path, or scan a public GitHub repo. The **Copy report** button
+copies the same Markdown report produced by `agent-consistency scan --format markdown`.
 
 Benchmark: **raw caught 0/6; agent-consistency caught 6/6** on the deterministic
 false-success suite in `benchmark/`. This is a reproducible scenario-suite
