@@ -50,3 +50,18 @@ jobs:
           else
             scripts/check_commit_hygiene.sh "${{ github.event.before }}..${{ github.sha }}"
           fi
+
+  version-bump:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check package version changed
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            scripts/check_version_bump.sh "origin/${{ github.base_ref }}..HEAD"
+          else
+            scripts/check_version_bump.sh "${{ github.event.before }}..${{ github.sha }}"
+          fi

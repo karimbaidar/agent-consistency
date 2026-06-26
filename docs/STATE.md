@@ -61,8 +61,11 @@ Complete — phased build prompt work shipped through Phase 6.
 - PyPI publishing workflow added for Trusted Publishing. It builds on each
   `main` push and publishes only when the `pyproject.toml` version is not
   already present on PyPI.
-- Contributor policy added in `CONTRIBUTING.md`; branch protection is blocked
-  while this repo remains private on the current GitHub plan.
+- Version bumped to `0.3.1` and CI now requires a `pyproject.toml` version
+  increase for each contribution.
+- Contributor policy added in `CONTRIBUTING.md`; `main` branch protection is
+  applied now that the repo is public, with one required approving review,
+  conversation resolution, required checks, and force pushes blocked.
 
 ## Decisions
 - Keep the core dependency-free; optional integrations must live behind extras.
@@ -93,14 +96,14 @@ Complete — phased build prompt work shipped through Phase 6.
   banner image without human approval.
 - PyPI versions are immutable, so package publication is automatic for new
   versions rather than for every unchanged-version commit.
+- Keep `pyproject.toml` and `agent_consistency.__version__` synchronized.
 
 ## Gotchas
-- GitHub Pages deploy remains gated by `DEPLOY_GITHUB_PAGES` because the repo
-  may not support Pages in every visibility/plan state.
-- GitHub returned `403` for `main` branch protection on 2026-06-26 because this
-  repository is private and the current plan does not expose branch protection
-  for private repos. Make the repo public or upgrade the plan before enforcing
-  one-review PR protection.
+- GitHub Pages deploy remains gated by `DEPLOY_GITHUB_PAGES` so docs hosting
+  can be enabled deliberately from repository settings.
+- The package publish job will fail until PyPI has a Trusted Publisher entry
+  for owner `karimbaidar`, repository `agent-consistency`, workflow
+  `publish.yml`, and environment `pypi`.
 - README benchmark numbers must stay synced with generated
   `benchmark/results.md`.
 - `OtelReceiptExporter` is export-only; it intentionally returns an empty list
