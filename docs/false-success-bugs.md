@@ -136,7 +136,7 @@ report the same risk without blocking so teams can find bugs before refactoring.
 
 Open the live demo:
 
-[Watch a false-success bug get blocked](https://karimbaidar.github.io/false-success-lab/)
+[Watch a false-success bug get blocked](https://false-success-lab-api.vercel.app/)
 
 Run the **Pending refund** scenario. The naive flow sends the completed-refund
 message. The protected flow blocks the message because `refund_settled` was not
