@@ -1,9 +1,9 @@
 # False-Success Bugs
 
-## When an agent says the job is done before the real world agrees
+## When an agent reports completion before the source system confirms the result
 
 A false-success bug happens when an AI agent reports completion even though the
-real-world outcome is still false, unresolved, stale, unsupported, or missing.
+confirmed result is still false, unresolved, stale, unsupported, or missing.
 
 The bug is not that the model hallucinated a random fact. The bug is sharper:
 the workflow took an action, saw something that looked successful, and continued
@@ -19,9 +19,9 @@ That is a false-success bug. The tool call succeeded. The outcome did not.
 
 ## Why this bug is spreading
 
-Agents are moving from chat into workflows that change the world: refunds,
-account updates, approvals, customer messages, support tickets, scheduling,
-operations, and compliance handoffs.
+Agents are moving from chat into workflows that change source-system state:
+refunds, account updates, approvals, customer messages, support tickets,
+scheduling, operations, and compliance handoffs.
 
 Once an agent can take side effects, the old success signals are too weak.
 
@@ -34,7 +34,8 @@ None of those prove that the customer got the refund, the account permission
 changed, the policy snapshot was current, or the handoff carried the facts the
 next agent needed.
 
-False-success bugs live between "the workflow moved" and "the world agrees."
+False-success bugs live between "the workflow moved" and "the source system
+confirmed the result."
 
 ## The main sub-types
 
@@ -93,7 +94,7 @@ The cost is a workflow that knew enough to be suspicious and continued anyway.
 Output validation answers a useful question: did the model produce the shape we
 expected?
 
-It does not answer whether the world changed.
+It does not answer whether the source system confirmed the result.
 
 Valid JSON can say:
 
@@ -141,8 +142,8 @@ Run the **Pending refund** scenario. The naive flow sends the completed-refund
 message. The protected flow blocks the message because `refund_settled` was not
 verified.
 
-That is the category in one frame: the tool returned, but the business outcome
-was still false.
+That is the category in one frame: the tool returned, but the confirmed result
+was still missing.
 
 ## The practical rule
 
