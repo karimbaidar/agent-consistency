@@ -11,8 +11,8 @@ Tool success is not business success.
 
 `agent-consistency` is a zero-dependency Python safety interlock for AI agent
 workflows that take irreversible or customer-visible actions. It catches
-false-success bugs: cases where a tool call returns success, but the real-world
-business outcome is still false.
+false-success bugs: cases where a tool call returns success, but the confirmed
+result is still missing or false.
 
 > A refund API returns `200 OK`. The provider status is still `pending`. The
 > agent is about to email "your refund is complete." `agent-consistency` blocks
@@ -21,7 +21,7 @@ business outcome is still false.
 Traces show what happened. Evals score what was said. `agent-consistency`
 decides whether the workflow was allowed to continue.
 
-[Live demo: watch a false-success bug get blocked](https://karimbaidar.github.io/false-success-lab/) | [Quickstart](docs/quickstart.md) | [Benchmark](docs/benchmark.md) | [Production](docs/production.md) | [Compliance](docs/compliance.md)
+[Live demo: scan workflows for unverified completion risks](https://karimbaidar.github.io/false-success-lab/) | [Quickstart](docs/quickstart.md) | [Benchmark](docs/benchmark.md) | [Production](docs/production.md) | [Compliance](docs/compliance.md)
 
 ## Scan Your Repo
 
@@ -60,8 +60,8 @@ python -m pip install agent-consistency
 
 ## The False-Success Bug
 
-A false-success bug happens when an agent reports completion before the real
-world agrees.
+A false-success bug happens when an agent reports completion before the source
+system confirms the result.
 
 Common forms:
 
@@ -75,7 +75,8 @@ Common forms:
   evidence for the claim.
 
 Output validation checks response shape. Tracing records the path taken.
-Neither blocks the next workflow step when the business outcome is still false.
+Neither blocks the next workflow step when the confirmed result is still
+missing.
 
 ## Add One Outcome Gate
 
@@ -175,14 +176,14 @@ expected`.
 
 | Category | What it answers | What it misses without agent-consistency |
 | --- | --- | --- |
-| Guardrails | Is the output shaped correctly? | Whether the business outcome happened. |
+| Guardrails | Is the output shaped correctly? | Whether the confirmed result exists. |
 | Evals | Was the answer good in a test? | Whether this live workflow may continue. |
 | Tracing | What happened? | Whether the next action should be blocked. |
 | Orchestration | Which node runs next? | Whether the handoff facts and outcomes are valid. |
 | Policy engines | What rule applied? | Whether the agent used a fresh policy snapshot. |
 
-Keep those tools. Add receipts and gates where agents make claims about the
-world.
+Keep those tools. Add receipts and gates where agents make claims that require
+source-system confirmation.
 
 ## Docs
 
