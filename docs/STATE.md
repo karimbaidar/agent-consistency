@@ -61,10 +61,12 @@ Complete — phased build prompt work shipped through Phase 6.
 - PyPI publishing workflow added for Trusted Publishing. It builds on each
   `main` push and publishes only when the `pyproject.toml` version is not
   already present on PyPI.
-- Version bumped to `0.3.4` and CI now requires a `pyproject.toml` version
+- Version bumped to `0.3.5` and CI now requires a `pyproject.toml` version
   increase for each contribution.
 - Scanner reports now include repo applicability, grouped finding summaries,
   and lower-noise handling for internal agent routing and test/schema copy.
+- Scanner text-mode matching now ignores string-literal/UI copy and obvious dev
+  launcher files so public repo reports focus on executable workflow risk.
 - Contributor policy added in `CONTRIBUTING.md`; `main` branch protection is
   applied now that the repo is public, with one required approving review,
   conversation resolution, required checks, and force pushes blocked.

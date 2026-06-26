@@ -15,6 +15,7 @@ SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
 SOURCE_EXTENSIONS = {".py", ".js", ".jsx", ".ts", ".tsx"}
 TEST_FILE_MARKERS = (".test.", ".spec.", "_test.")
+DEV_FILE_MARKERS = ("dev_", ".story.", ".stories.")
 DEFAULT_EXCLUDED_DIRS = {
     ".git",
     ".mypy_cache",
@@ -603,6 +604,10 @@ def _iter_source_files(root: Path) -> Iterable[Path]:
             continue
         if any(marker in path.name.lower() for marker in TEST_FILE_MARKERS):
             continue
+        if path.name.lower().startswith(DEV_FILE_MARKERS) or any(
+            marker in path.name.lower() for marker in DEV_FILE_MARKERS[1:]
+        ):
+            continue
         try:
             relative = path.relative_to(root)
         except ValueError:
@@ -699,10 +704,11 @@ def _scan_text_file(path: Path, root: Path, lines: List[str]) -> tuple[List[Scan
     for index, line_text in enumerate(lines, start=1):
         if _is_suppressed(lines, index):
             continue
-        action = _risky_action_from_name(line_text)
+        action_source = _strip_string_literals(line_text)
+        action = _risky_action_from_name(action_source)
         if not action:
             continue
-        if not _looks_like_executable_text_line(line_text, action):
+        if not _looks_like_executable_text_line(action_source, action):
             continue
         context = _context(lines, max(1, index - 6), min(len(lines), index + 6))
         if _should_ignore_action(action, context, line_text, kind="pattern"):
@@ -959,6 +965,8 @@ def _confidence(action_key: str, category: str, dangerous_message: bool, kind: s
         return "high" if kind == "call" else "medium"
     if category in {"financial", "support", "trading"}:
         return "medium"
+    if category == "production_state" and kind in {"function", "call"}:
+        return "medium"
     return "low"
 
 
@@ -1035,6 +1043,11 @@ def _has_outcome_protection(context: str) -> bool:
 def _contains_any(value: str, terms: Iterable[str]) -> bool:
     lowered = value.lower()
     return any(term.lower() in lowered for term in terms)
+
+
+def _strip_string_literals(value: str) -> str:
+    without_strings = re.sub(r"(['\"])(?:\\.|(?!\1).)*\1", "", value)
+    return re.sub(r">\s*[^<{}()=]+\s*<", "><", without_strings)
 
 
 def _token_or_phrase_present(normalized: str, term: str) -> bool:

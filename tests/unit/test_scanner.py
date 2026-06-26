@@ -142,3 +142,9 @@ def test_scan_ignores_schema_and_test_copy():
     report = scan_target(str(FIXTURES / "schema_and_test_copy"))
 
     assert report.findings == []
+
+
+def test_scan_ignores_ui_copy_and_dev_launcher_noise():
+    report = scan_target(str(FIXTURES / "ui_copy_and_dev_launcher"))
+
+    assert report.findings == []
