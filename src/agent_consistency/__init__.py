@@ -52,6 +52,7 @@ from .run import AgentStep, WorkflowRun
 from .scanner import (
     ScanFinding,
     ScanReport,
+    SystemMap,
     render_scan_markdown,
     render_scan_text,
     scan_report_to_json,
@@ -74,7 +75,7 @@ from .verifier import (
     choose_verifier,
 )
 
-__version__ = "0.3.5"
+__version__ = "0.3.6"
 
 __all__ = [
     "AgentStep",
@@ -110,6 +111,7 @@ __all__ = [
     "RiskReport",
     "ScanFinding",
     "ScanReport",
+    "SystemMap",
     "RefundSettlementVerifier",
     "detect_receipt_file",
     "detect_risks",

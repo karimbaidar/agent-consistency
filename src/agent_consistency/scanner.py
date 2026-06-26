@@ -36,6 +36,19 @@ DEFAULT_EXCLUDED_DIRS = {
 }
 SUPPRESSION_MARKER = "agent-consistency: ignore false-success-risk"
 
+# Deterministic helpers for the system map (no LLM, derived from scanned facts).
+ENTRY_POINT_STEMS = {"main", "app", "cli", "server", "manage", "worker", "index", "__main__"}
+ENTRY_POINT_MARKERS = ("handler", "webhook", "route", "endpoint", "entrypoint")
+CATEGORY_SOURCE_SYSTEMS = {
+    "financial": "payment/settlement provider",
+    "destructive": "system of record / identity store",
+    "access_control": "access-control (IAM) system",
+    "support": "support/ticketing system",
+    "trading": "brokerage/exchange",
+    "customer_visible": "customer messaging channel",
+    "production_state": "production datastore / infrastructure",
+}
+
 RISKY_ACTIONS = (
     "send_email",
     "send_message",
@@ -195,6 +208,13 @@ class ScanFinding:
     rule: str = "risky_action_without_confirmation"
     fingerprint: str = ""
 
+    @property
+    def missing_confirmation(self) -> str:
+        """The single source-system check whose absence makes this a false-success risk."""
+        for item in self.evidence_missing:
+            return item
+        return "source-system outcome confirmation"
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "severity": self.severity,
@@ -205,11 +225,30 @@ class ScanFinding:
             "why": self.why,
             "evidence_found": list(self.evidence_found),
             "evidence_missing": list(self.evidence_missing),
+            "missing_confirmation": self.missing_confirmation,
             "suggested_fix": self.suggested_fix,
             "snippet": self.snippet,
             "category": self.category,
             "rule": self.rule,
             "fingerprint": self.fingerprint,
+        }
+
+
+@dataclass(frozen=True)
+class SystemMap:
+    """Where work enters the repo, what side-effect actions it takes, and which
+    source systems must confirm those actions. Derived deterministically from the
+    scanned files and findings."""
+
+    entry_points: List[str] = field(default_factory=list)
+    action_surfaces: List[str] = field(default_factory=list)
+    source_systems: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "entry_points": list(self.entry_points),
+            "action_surfaces": list(self.action_surfaces),
+            "source_systems": list(self.source_systems),
         }
 
 
@@ -223,6 +262,7 @@ class ScanReport:
     baseline_path: Optional[str] = None
     suppressed_by_baseline: int = 0
     profile: ScanProfile = field(default_factory=ScanProfile)
+    system_map: SystemMap = field(default_factory=SystemMap)
 
     @property
     def risky_actions_found(self) -> int:
@@ -312,6 +352,7 @@ class ScanReport:
             "applicability": self.profile.applicability,
             "applicability_confidence": self.profile.confidence,
             "applicability_summary": self.profile.summary,
+            "system_map": self.system_map.to_dict(),
             "agentic_files": self.profile.agentic_files,
             "action_files": self.profile.action_files,
             "framework_signals": list(self.profile.framework_signals),
@@ -371,15 +412,41 @@ def scan_path(
 
     baseline = baseline or set()
     filtered = [finding for finding in findings if finding.fingerprint not in baseline]
+    deduped = _dedupe_findings(filtered)
     return ScanReport(
         repository=repository or _repository_name(path),
         source=source or str(path),
-        findings=_dedupe_findings(filtered),
+        findings=deduped,
         verified_actions_found=verified_actions_found,
         files_scanned=len(files),
         baseline_path=baseline_path,
         suppressed_by_baseline=len(findings) - len(filtered),
         profile=profile,
+        system_map=_build_system_map(files, root, deduped),
+    )
+
+
+def _build_system_map(files: List[Path], root: Path, findings: List[ScanFinding]) -> SystemMap:
+    entry_points: List[str] = []
+    for path in files:
+        rel = _relative_path(path, root)
+        lowered = rel.lower()
+        if path.stem.lower() in ENTRY_POINT_STEMS or any(
+            marker in lowered for marker in ENTRY_POINT_MARKERS
+        ):
+            entry_points.append(rel)
+    action_surfaces = sorted({finding.action for finding in findings})
+    source_systems = sorted(
+        {
+            CATEGORY_SOURCE_SYSTEMS[finding.category]
+            for finding in findings
+            if finding.category in CATEGORY_SOURCE_SYSTEMS
+        }
+    )
+    return SystemMap(
+        entry_points=sorted(set(entry_points))[:12],
+        action_surfaces=action_surfaces[:12],
+        source_systems=source_systems,
     )
 
 
@@ -478,6 +545,10 @@ def render_scan_text(report: ScanReport) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _md_list(items: List[str]) -> str:
+    return ", ".join(f"`{item}`" for item in items) if items else "none detected"
+
+
 def render_scan_markdown(report: ScanReport) -> str:
     lines = [
         "# False-success report card",
@@ -505,6 +576,14 @@ def render_scan_markdown(report: ScanReport) -> str:
     ]
     if report.suppressed_by_baseline:
         lines.append(f"* Suppressed by baseline: {report.suppressed_by_baseline}")
+
+    system_map = report.system_map
+    if system_map.entry_points or system_map.action_surfaces or system_map.source_systems:
+        lines.extend(["", "## System map", ""])
+        lines.append(f"* Entry points: {_md_list(system_map.entry_points)}")
+        lines.append(f"* Side-effect actions: {_md_list(system_map.action_surfaces)}")
+        lines.append(f"* Source systems to confirm: {_md_list(system_map.source_systems)}")
+
     if not report.findings:
         lines.extend(
             [
