@@ -2,8 +2,8 @@
 
 The interactive False Success Lab lives in the separate public demo repo:
 
-- Demo: <https://karimbaidar.github.io/agent-consistency-refund-demo/>
-- Repo: <https://github.com/karimbaidar/agent-consistency-refund-demo>
+- Demo: <https://karimbaidar.github.io/false-success-lab/>
+- Repo: <https://github.com/karimbaidar/false-success-lab>
 
 This package repo provides the core scanner, report schema, receipt model, and
 runtime gates that the demo can call from its backend.
@@ -47,5 +47,5 @@ That Markdown is designed for GitHub issues, PR comments, and social posts.
 ## Repo Boundary
 
 Do not add the interactive UI or frontend build pipeline to this package repo.
-Keep UI work in `agent-consistency-refund-demo`; keep reusable scanner schema,
+Keep UI work in `false-success-lab`; keep reusable scanner schema,
 package APIs, and docs links here.

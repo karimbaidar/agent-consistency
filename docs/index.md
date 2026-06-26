@@ -30,7 +30,7 @@ print(risk_report.to_dict())
 
 Use the live demo when you want the visual story:
 
-[Watch a false-success bug get blocked](https://karimbaidar.github.io/agent-consistency-refund-demo/)
+[Watch a false-success bug get blocked](https://karimbaidar.github.io/false-success-lab/)
 
 ## What To Read
 

@@ -44,7 +44,7 @@ dependencies = []
 Homepage = "https://github.com/karimbaidar/agent-consistency"
 Repository = "https://github.com/karimbaidar/agent-consistency"
 Issues = "https://github.com/karimbaidar/agent-consistency/issues"
-Demo = "https://karimbaidar.github.io/agent-consistency-refund-demo/"
+Demo = "https://karimbaidar.github.io/false-success-lab/"
 
 [project.scripts]
 agent-consistency = "agent_consistency.cli:main"

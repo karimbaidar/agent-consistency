@@ -56,7 +56,7 @@ Complete — phased build prompt work shipped through Phase 6.
   temporary clone, baselines, suppression comments, and a `false-success scan`
   GitHub Action.
 - The interactive False Success Lab UI now lives in the separate
-  `agent-consistency-refund-demo` repo. This package repo keeps only scanner
+  `false-success-lab` repo. This package repo keeps only scanner
   APIs, report schemas, receipt/runtime code, and docs links.
 
 ## Decisions

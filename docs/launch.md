@@ -2,7 +2,7 @@
 
 Use the live demo link in every launch surface:
 
-https://karimbaidar.github.io/agent-consistency-refund-demo/
+https://karimbaidar.github.io/false-success-lab/
 
 ## Show HN
 
@@ -22,7 +22,7 @@ Canonical example: a refund API returns 200 OK, provider status is still
 pending, and the agent is about to email "your refund is complete."
 
 The live demo shows the naive flow versus the protected flow:
-https://karimbaidar.github.io/agent-consistency-refund-demo/
+https://karimbaidar.github.io/false-success-lab/
 
 The package adds receipts and gates for state freshness, handoffs, proof
 artifacts, and outcome verification. It is not a tracing replacement. Traces
@@ -60,7 +60,7 @@ It records state reads, handoff facts, proof artifacts, and outcome checks.
 If the outcome is false, the unsafe continuation gets blocked.
 
 5/ Try the live demo. It takes about 10 seconds:
-https://karimbaidar.github.io/agent-consistency-refund-demo/
+https://karimbaidar.github.io/false-success-lab/
 
 Run "Pending refund" and watch the customer message get blocked.
 ```
@@ -82,7 +82,7 @@ The agent is about to email "your refund is complete." agent-consistency blocks
 the message and records why.
 
 Live demo:
-https://karimbaidar.github.io/agent-consistency-refund-demo/
+https://karimbaidar.github.io/false-success-lab/
 ```
 
 ## Reddit r/LocalLLaMA
@@ -98,7 +98,7 @@ The motivating bug: refund API returns 200 OK, provider status is still pending,
 agent emails "your refund is complete."
 
 Live demo:
-https://karimbaidar.github.io/agent-consistency-refund-demo/
+https://karimbaidar.github.io/false-success-lab/
 
 Repo:
 https://github.com/karimbaidar/agent-consistency
@@ -117,7 +117,7 @@ checks. Detect mode can report missing gates and customer-visible actions after
 failed outcomes without blocking the workflow.
 
 Demo:
-https://karimbaidar.github.io/agent-consistency-refund-demo/
+https://karimbaidar.github.io/false-success-lab/
 ```
 
 ## Reddit r/MachineLearning
@@ -132,7 +132,7 @@ and side-effecting actions.
 
 The demo focuses on a refund workflow where the API call succeeds but the
 provider status is still pending:
-https://karimbaidar.github.io/agent-consistency-refund-demo/
+https://karimbaidar.github.io/false-success-lab/
 ```
 
 ## Newsletter Pitch
