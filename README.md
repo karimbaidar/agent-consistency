@@ -21,7 +21,7 @@ result is still missing or false.
 Traces show what happened. Evals score what was said. `agent-consistency`
 decides whether the workflow was allowed to continue.
 
-[Live demo: scan workflows for unverified completion risks](https://karimbaidar.github.io/false-success-lab/) | [Quickstart](docs/quickstart.md) | [Benchmark](docs/benchmark.md) | [Production](docs/production.md) | [Compliance](docs/compliance.md)
+[Live demo: scan workflows for unverified completion risks](https://false-success-lab-api.vercel.app/) | [Quickstart](docs/quickstart.md) | [Benchmark](docs/benchmark.md) | [Production](docs/production.md) | [Compliance](docs/compliance.md)
 
 ## Scan Your Repo
 
