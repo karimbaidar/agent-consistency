@@ -44,7 +44,7 @@ dependencies = []
 Homepage = "https://github.com/karimbaidar/agent-consistency"
 Repository = "https://github.com/karimbaidar/agent-consistency"
 Issues = "https://github.com/karimbaidar/agent-consistency/issues"
-Demo = "https://karimbaidar.github.io/false-success-lab/"
+Demo = "https://false-success-lab-api.vercel.app/"
 
 [project.scripts]
 agent-consistency = "agent_consistency.cli:main"
