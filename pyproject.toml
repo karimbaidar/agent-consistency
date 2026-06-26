@@ -84,7 +84,7 @@ native-microsoft = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-agent_consistency = ["schemas/*.json", "lab_static/*", "lab_static/assets/*"]
+agent_consistency = ["schemas/*.json"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"

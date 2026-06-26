@@ -1,34 +1,23 @@
 # False Success Lab
 
-Subtitle:
+The interactive False Success Lab lives in the separate public demo repo:
 
-> Scan your agent repo, find false-success risks, then watch the gate block them.
+- Demo: <https://karimbaidar.github.io/agent-consistency-refund-demo/>
+- Repo: <https://github.com/karimbaidar/agent-consistency-refund-demo>
 
-Start the local lab:
+This package repo provides the core scanner, report schema, receipt model, and
+runtime gates that the demo can call from its backend.
 
-```bash
-agent-consistency lab
-```
+## Scanner Contract
 
-Open `http://127.0.0.1:8765`.
-
-The lab is a packaged Svelte UI served by the Python package. It calls the same
-scanner as the CLI, so the report card matches `agent-consistency scan`.
-
-First-screen options:
-
-1. Try a built-in false-success scenario
-2. Scan your own repo
-3. Scan a public GitHub repo
-
-The scan entry points call:
+The lab scan entry points should use the same scanner contract as the CLI:
 
 ```bash
 agent-consistency scan .
 agent-consistency scan https://github.com/org/repo
 ```
 
-The report card surfaces:
+The report card should surface:
 
 ```text
 False-success report card
@@ -41,13 +30,13 @@ Top finding:
 send_refund_confirmation may claim completion before refund settlement is confirmed.
 ```
 
-The scanner stays honest. Low-confidence findings say:
+The scanner must stay honest. Low-confidence findings should say:
 
 ```text
 Possible risk, needs review.
 ```
 
-The **Copy report** button copies the Markdown output from:
+The **Copy report** button should copy the Markdown output from:
 
 ```bash
 agent-consistency scan . --format markdown
@@ -55,11 +44,8 @@ agent-consistency scan . --format markdown
 
 That Markdown is designed for GitHub issues, PR comments, and social posts.
 
-The gate display is derived from the scan:
+## Repo Boundary
 
-- `BLOCK` when high-severity exposure is found.
-- `REVIEW` when lower-severity exposure is found.
-- `ALLOW` when no configured static finding fired.
-
-`ALLOW` is not a proof of safety. The UI keeps that caveat visible because a
-static scan cannot replace runtime outcome gates.
+Do not add the interactive UI or frontend build pipeline to this package repo.
+Keep UI work in `agent-consistency-refund-demo`; keep reusable scanner schema,
+package APIs, and docs links here.

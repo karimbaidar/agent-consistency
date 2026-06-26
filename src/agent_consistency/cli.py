@@ -4,7 +4,6 @@ import sys
 from typing import List, Optional
 
 from .detect import detect_receipt_file, render_risk_report
-from .lab import DEFAULT_HOST, DEFAULT_PORT, run_lab_server
 from .receipt_verification import render_verify_report, verify_receipt_file
 from .reporting import (
     load_receipt_report,
@@ -71,13 +70,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="write current findings to agent-consistency-baseline.json",
     )
 
-    lab_parser = subparsers.add_parser(
-        "lab",
-        help="serve the interactive False Success Lab UI",
-    )
-    lab_parser.add_argument("--host", default=DEFAULT_HOST, help="bind host")
-    lab_parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="bind port")
-
     subparsers.add_parser("schema", help="print the receipt JSON Schema")
 
     args = parser.parse_args(argv)
@@ -124,14 +116,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             write_baseline(scan_report)
             sys.stdout.write("Baseline written: agent-consistency-baseline.json\n")
         if args.fail_on and scan_report.has_severity_at_or_above(args.fail_on):
-            return 1
-        return 0
-
-    if args.command == "lab":
-        try:
-            run_lab_server(host=args.host, port=args.port)
-        except OSError as exc:
-            sys.stderr.write(f"Error: {exc}\n")
             return 1
         return 0
 

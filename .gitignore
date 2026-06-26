@@ -12,7 +12,6 @@ dist/
 build/
 site/
 *.egg-info/
-node_modules/
 
 # Virtual environments
 .venv/

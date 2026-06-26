@@ -29,30 +29,6 @@ notify_customer(customer, "Done.")
 Use `--format markdown` for the same clean report payload a lab or UI can expose
 through a **Copy report** button.
 
-## `lab`
-
-Start the local False Success Lab UI:
-
-```bash
-agent-consistency lab
-```
-
-The lab serves a packaged Svelte app at `http://127.0.0.1:8765` and uses the
-same scanner as the CLI. The first screen offers:
-
-1. Try a built-in false-success scenario
-2. Scan your own repo
-3. Scan a public GitHub repo
-
-Use `--host` and `--port` when the default bind address is already occupied:
-
-```bash
-agent-consistency lab --host 127.0.0.1 --port 8787
-```
-
-The **Copy report** button copies the Markdown report returned by the scanner,
-so the output is ready for GitHub issues, PR comments, or social posts.
-
 ## `report`
 
 Summarize receipts:

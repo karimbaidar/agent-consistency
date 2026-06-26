@@ -25,7 +25,6 @@ DEFAULT_EXCLUDED_DIRS = {
     "dist",
     "docs",
     "examples",
-    "lab_static",
     "node_modules",
     "site",
     "tests",
