@@ -74,6 +74,33 @@ def test_scan_markdown_output_is_shareable():
     assert "```python" in markdown
 
 
+def test_scan_exposes_system_map_and_missing_confirmation():
+    report = scan_target(str(FIXTURES / "refund_missing_confirmation"))
+    finding = report.ranked_findings[0]
+
+    # Per-finding: the single source-system check whose absence is the risk.
+    assert finding.missing_confirmation == finding.evidence_missing[0]
+
+    # System map is derived deterministically from scanned facts.
+    system_map = report.system_map
+    assert "payment/settlement provider" in system_map.source_systems
+    assert finding.action in system_map.action_surfaces
+
+    payload = report.to_dict()
+    assert payload["system_map"]["source_systems"] == system_map.source_systems
+    assert payload["findings"][0]["missing_confirmation"] == finding.missing_confirmation
+    # Deterministic across runs.
+    assert report.to_dict()["system_map"] == payload["system_map"]
+
+
+def test_scan_markdown_includes_system_map():
+    report = scan_target(str(FIXTURES / "refund_missing_confirmation"))
+    markdown = render_scan_markdown(report)
+
+    assert "## System map" in markdown
+    assert "Source systems to confirm:" in markdown
+
+
 def test_scan_suppression_comment_hides_finding():
     report = scan_target(str(FIXTURES / "suppressed_risk"))
 
