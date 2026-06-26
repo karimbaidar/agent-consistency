@@ -45,6 +45,7 @@ nav:
   - Diagram To Receipt Map: diagram-receipt-map.md
   - Adapters: adapters.md
   - Microsoft Agent Framework: microsoft-agent-framework.md
+  - Release Governance: release-governance.md
   - CLI: cli.md
   - Integrations: integrations.md
   - Production Notes: production.md

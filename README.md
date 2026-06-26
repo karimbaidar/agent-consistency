@@ -194,6 +194,7 @@ world.
 - [Receipts and verification](docs/receipts.md)
 - [Outcome verification](docs/outcome-verification.md)
 - [Production notes](docs/production.md)
+- [Release governance](docs/release-governance.md)
 - [Compliance framing](docs/compliance.md)
 - [False-success bugs](docs/false-success.md)
 - [Why agent-consistency](docs/why-agent-consistency.md)

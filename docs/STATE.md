@@ -58,6 +58,11 @@ Complete — phased build prompt work shipped through Phase 6.
 - The interactive False Success Lab UI now lives in the separate
   `false-success-lab` repo. This package repo keeps only scanner
   APIs, report schemas, receipt/runtime code, and docs links.
+- PyPI publishing workflow added for Trusted Publishing. It builds on each
+  `main` push and publishes only when the `pyproject.toml` version is not
+  already present on PyPI.
+- Contributor policy added in `CONTRIBUTING.md`; branch protection is blocked
+  while this repo remains private on the current GitHub plan.
 
 ## Decisions
 - Keep the core dependency-free; optional integrations must live behind extras.
@@ -86,10 +91,16 @@ Complete — phased build prompt work shipped through Phase 6.
   `Freshness` is the public diagram label for state freshness checks.
 - The pending-refund banner remains future collateral; do not add a generated
   banner image without human approval.
+- PyPI versions are immutable, so package publication is automatic for new
+  versions rather than for every unchanged-version commit.
 
 ## Gotchas
 - GitHub Pages deploy remains gated by `DEPLOY_GITHUB_PAGES` because the repo
   may not support Pages in every visibility/plan state.
+- GitHub returned `403` for `main` branch protection on 2026-06-26 because this
+  repository is private and the current plan does not expose branch protection
+  for private repos. Make the repo public or upgrade the plan before enforcing
+  one-review PR protection.
 - README benchmark numbers must stay synced with generated
   `benchmark/results.md`.
 - `OtelReceiptExporter` is export-only; it intentionally returns an empty list

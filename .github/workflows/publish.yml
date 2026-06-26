@@ -1,0 +1,86 @@
+name: publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_publish: ${{ steps.pypi.outputs.should_publish }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tooling
+        run: python -m pip install -U pip build twine
+      - name: Clean generated package artifacts
+        run: rm -rf build dist src/*.egg-info
+      - name: Read package version
+        id: version
+        shell: python
+        run: |
+          import os
+          import tomllib
+
+          with open("pyproject.toml", "rb") as handle:
+              version = tomllib.load(handle)["project"]["version"]
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"version={version}\n")
+      - name: Build package
+        run: python -m build
+      - name: Check package metadata
+        run: python -m twine check dist/*
+      - name: Check PyPI version availability
+        id: pypi
+        shell: python
+        run: |
+          import os
+          import urllib.error
+          import urllib.request
+
+          version = "${{ steps.version.outputs.version }}"
+          url = f"https://pypi.org/pypi/agent-consistency/{version}/json"
+          should_publish = "false"
+
+          try:
+              urllib.request.urlopen(url, timeout=15).close()
+              print(f"agent-consistency {version} already exists on PyPI; skipping publish.")
+          except urllib.error.HTTPError as exc:
+              if exc.code != 404:
+                  raise
+              print(f"agent-consistency {version} is not on PyPI; publishing is enabled.")
+              should_publish = "true"
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"should_publish={should_publish}\n")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-consistency-dist
+          path: dist/*
+
+  publish:
+    needs: build
+    if: needs.build.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-consistency-dist
+          path: dist
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
